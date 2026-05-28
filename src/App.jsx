@@ -223,7 +223,7 @@ function App() {
     return plan.status === filter.toLowerCase();
   });
 
-  const [activeSection, setActiveSection] = useState('shared');
+  const [activeSection, setActiveSection] = useState('journey');
 
   React.useEffect(() => {
     if (activeTab !== 'NAVIGATOR' || navigatorScreen !== 'JOURNEY') return;
@@ -234,6 +234,7 @@ function App() {
     };
 
     const handleScroll = () => {
+      const journeyEl = document.getElementById('section-journey');
       const sharedEl = document.getElementById('section-shared');
       const stageEl = document.getElementById('section-stage');
       const nextEl = document.getElementById('section-next-steps');
@@ -253,6 +254,7 @@ function App() {
       const pTeamTop = getAbsoluteOffsetTop(pTeamEl);
       const pPlanTop = getAbsoluteOffsetTop(pPlanEl);
       const stageTop = getAbsoluteOffsetTop(stageEl);
+      const sharedTop = getAbsoluteOffsetTop(sharedEl);
 
       if (scrollPos >= nextTop) {
         setActiveSection('next-steps');
@@ -266,8 +268,10 @@ function App() {
         setActiveSection('pillar-plan');
       } else if (scrollPos >= stageTop) {
         setActiveSection('stage');
-      } else {
+      } else if (scrollPos >= sharedTop) {
         setActiveSection('shared');
+      } else {
+        setActiveSection('journey');
       }
     };
 
@@ -613,50 +617,23 @@ function App() {
           ) : (
             /* Redesigned Your Journey Screen */
             <div style={{ width: '100%' }}>
-              {/* Journey Hero Header Section */}
-              <div className="journey-hero">
-                <div className="journey-hero-icon-circle">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3d7872" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-                  </svg>
-                </div>
-                <h1 className="journey-hero-title">We Understand Your Journey</h1>
-                <p className="journey-hero-subtitle">
-                  Thank you for sharing your story with us. We know this is a challenging time, and we're honored to walk alongside you as you plan for your mother's care.
-                </p>
-                <button className="journey-download-btn" onClick={() => {
-                  const element = document.createElement("a");
-                  const file = new Blob([
-                    `BQUEST CARE PLANNING PORTAL SUMMARY\n`,
-                    `===================================\n\n`,
-                    `You are planning care for your mother who is showing early signs of memory loss.\n`,
-                    `Location Zip Code: ${chatZip || '80202'}\n`,
-                    `Planning Timeline: ${chatTimeline || 'Planning ahead'}\n`,
-                    `Family Situation Note:\n"${chatSituation || "Planning early signs of memory loss care options."}"\n\n`,
-                    `Thank you for using bQuest Financial Advisor Portal.\n`
-                  ], { type: 'text/plain' });
-                  element.href = URL.createObjectURL(file);
-                  element.download = "bQuest_Care_Planning_Summary.txt";
-                  document.body.appendChild(element);
-                  element.click();
-                  document.body.removeChild(element);
-                }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                  Download Care Summary
-                </button>
-              </div>
 
-              <div className="journey-layout">
+              <div className="journey-layout" style={{ marginTop: '16px' }}>
                 {/* Left Column Sidebar (Floating Essential Resources) */}
                 <div className="journey-left-sidebar">
                   {/* Scrollspy Sidebar Indicator Menu */}
                   <div className="scrollspy-card">
-                    <span className="scrollspy-title">Planning Sections</span>
+                    <span className="scrollspy-title" style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px', display: 'block', textTransform: 'none', letterSpacing: 'normal' }}>Planning Sections</span>
                     <ul className="scrollspy-list" style={{ marginBottom: '16px' }}>
+                      <li>
+                        <button 
+                          className={`scrollspy-item ${activeSection === 'journey' ? 'active' : ''}`}
+                          onClick={() => scrollToSection('journey')}
+                        >
+                          <span className="scrollspy-dot"></span>
+                          We Understand Your Journey
+                        </button>
+                      </li>
                       <li>
                         <button 
                           className={`scrollspy-item ${activeSection === 'shared' ? 'active' : ''}`}
@@ -776,6 +753,41 @@ function App() {
                 {/* Right Column (Scrollable details content) */}
                 <div className="journey-scrollable-content">
                   
+                  {/* We Understand Your Journey Section */}
+                  <div className="shared-summary-card" id="section-journey">
+                    <div style={{ marginBottom: '0' }}>
+                      <span style={{ fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--primary-color)', letterSpacing: '1px' }}>Your Care Planning Journey</span>
+                      <h1 className="journey-hero-title" style={{ fontSize: '20px', textAlign: 'left', marginTop: '6px', marginBottom: '10px', fontWeight: '600' }}>We Understand Your Journey</h1>
+                      <p className="journey-hero-subtitle" style={{ textAlign: 'left', margin: '0 0 16px 0', fontSize: '13.5px', color: 'var(--text-gray)', maxWidth: '100%' }}>
+                        Thank you for sharing your story with us. We know this is a challenging time, and we're honored to walk alongside you as you plan for {chatRelation ? chatRelation.toLowerCase() : "your mother"}'s care.
+                      </p>
+                      <button className="journey-download-btn" style={{ padding: '10px 24px', fontSize: '13.5px' }} onClick={() => {
+                        const element = document.createElement("a");
+                        const file = new Blob([
+                          `BQUEST CARE PLANNING PORTAL SUMMARY\n`,
+                          `===================================\n\n`,
+                          `You are planning care for your mother who is showing early signs of memory loss.\n`,
+                          `Location Zip Code: ${chatZip || '80202'}\n`,
+                          `Planning Timeline: ${chatTimeline || 'Planning ahead'}\n`,
+                          `Family Situation Note:\n"${chatSituation || "Planning early signs of memory loss care options."}"\n\n`,
+                          `Thank you for using bQuest Financial Advisor Portal.\n`
+                        ], { type: 'text/plain' });
+                        element.href = URL.createObjectURL(file);
+                        element.download = "bQuest_Care_Planning_Summary.txt";
+                        document.body.appendChild(element);
+                        element.click();
+                        document.body.removeChild(element);
+                      }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="7 10 12 15 17 10"/>
+                          <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Download Care Summary
+                      </button>
+                    </div>
+                  </div>
+
                   {/* What You've Shared Summary Section */}
                   <div className="shared-summary-card" id="section-shared">
                     <h2 className="shared-summary-title">What You've Shared</h2>
