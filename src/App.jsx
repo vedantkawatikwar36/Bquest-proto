@@ -64,6 +64,7 @@ function App() {
   const [chatZip, setChatZip] = useState('');
   const [chatSituation, setChatSituation] = useState('');
   const [navigatorScreen, setNavigatorScreen] = useState('STORY'); // 'STORY' (chatbot), 'JOURNEY' (resourcelist)
+  const [expandedPillar, setExpandedPillar] = useState('plan'); // 'plan', 'team', 'benefits', 'costs' or null
 
   const [chatMessages, setChatMessages] = useState([
     {
@@ -228,11 +229,6 @@ function App() {
   React.useEffect(() => {
     if (activeTab !== 'NAVIGATOR' || navigatorScreen !== 'JOURNEY') return;
 
-    const getAbsoluteOffsetTop = (el) => {
-      if (!el) return 0;
-      return el.getBoundingClientRect().top + window.scrollY;
-    };
-
     const handleScroll = () => {
       const journeyEl = document.getElementById('section-journey');
       const sharedEl = document.getElementById('section-shared');
@@ -246,15 +242,37 @@ function App() {
 
       if (!sharedEl || !stageEl || !nextEl) return;
 
-      const scrollPos = window.scrollY + 250; // offset adjustment for better trigger matching
+      const containerEl = document.querySelector('.workspace-content');
+      const isDesktop = window.innerWidth > 768;
 
-      const nextTop = getAbsoluteOffsetTop(nextEl);
-      const pCostsTop = getAbsoluteOffsetTop(pCostsEl);
-      const pBenefitsTop = getAbsoluteOffsetTop(pBenefitsEl);
-      const pTeamTop = getAbsoluteOffsetTop(pTeamEl);
-      const pPlanTop = getAbsoluteOffsetTop(pPlanEl);
-      const stageTop = getAbsoluteOffsetTop(stageEl);
-      const sharedTop = getAbsoluteOffsetTop(sharedEl);
+      let scrollPos;
+      let nextTop, pCostsTop, pBenefitsTop, pTeamTop, pPlanTop, stageTop, sharedTop;
+
+      const getRelativeOffsetTop = (el, parent) => {
+        if (!el || !parent) return 0;
+        return el.getBoundingClientRect().top - parent.getBoundingClientRect().top + parent.scrollTop;
+      };
+
+      if (isDesktop && containerEl) {
+        scrollPos = containerEl.scrollTop + 140; // tighter offset adjustment within container
+        nextTop = getRelativeOffsetTop(nextEl, containerEl);
+        pCostsTop = pCostsEl ? getRelativeOffsetTop(pCostsEl, containerEl) : 0;
+        pBenefitsTop = pBenefitsEl ? getRelativeOffsetTop(pBenefitsEl, containerEl) : 0;
+        pTeamTop = pTeamEl ? getRelativeOffsetTop(pTeamEl, containerEl) : 0;
+        pPlanTop = pPlanEl ? getRelativeOffsetTop(pPlanEl, containerEl) : 0;
+        stageTop = getRelativeOffsetTop(stageEl, containerEl);
+        sharedTop = getRelativeOffsetTop(sharedEl, containerEl);
+      } else {
+        scrollPos = window.scrollY + 250; // window offset
+        const getAbsoluteOffsetTop = (el) => el ? el.getBoundingClientRect().top + window.scrollY : 0;
+        nextTop = getAbsoluteOffsetTop(nextEl);
+        pCostsTop = getAbsoluteOffsetTop(pCostsEl);
+        pBenefitsTop = getAbsoluteOffsetTop(pBenefitsEl);
+        pTeamTop = getAbsoluteOffsetTop(pTeamEl);
+        pPlanTop = getAbsoluteOffsetTop(pPlanEl);
+        stageTop = getAbsoluteOffsetTop(stageEl);
+        sharedTop = getAbsoluteOffsetTop(sharedEl);
+      }
 
       if (scrollPos >= nextTop) {
         setActiveSection('next-steps');
@@ -275,15 +293,90 @@ function App() {
       }
     };
 
+    const containerEl = document.querySelector('.workspace-content');
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    if (containerEl) {
+      containerEl.addEventListener('scroll', handleScroll);
+    }
+
+    const handleGlobalWheel = (e) => {
+      const container = document.querySelector('.workspace-content');
+      if (!container) return;
+
+      // Do not forward scroll if the user is scrolling directly inside the essential resources section
+      if (e.target.closest('.journey-right-sidebar') || e.target.closest('.journey-right-card')) {
+        return;
+      }
+
+      // Do not intercept if user is already scrolling directly inside the scrollable content area
+      if (e.target.closest('.workspace-content')) {
+        return;
+      }
+
+      // Scroll the main workspace content panel
+      container.scrollTop += e.deltaY;
+    };
+
+    window.addEventListener('wheel', handleGlobalWheel, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (containerEl) {
+        containerEl.removeEventListener('scroll', handleScroll);
+      }
+      window.removeEventListener('wheel', handleGlobalWheel);
+    };
   }, [activeTab, navigatorScreen]);
 
-  const scrollToSection = (sectionId) => {
-    const el = document.getElementById(`section-${sectionId}`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  React.useEffect(() => {
+    if (activeTab === 'NAVIGATOR' && navigatorScreen === 'JOURNEY') {
+      window.scrollTo(0, 0);
+      const container = document.querySelector('.workspace-content');
+      if (container) {
+        container.scrollTop = 0;
+      }
+      setActiveSection('journey');
     }
+  }, [activeTab, navigatorScreen]);
+
+  React.useEffect(() => {
+    const stream = document.querySelector('.chat-message-stream');
+    if (stream) {
+      setTimeout(() => {
+        stream.scrollTo({
+          top: stream.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 50);
+    }
+  }, [chatMessages]);
+
+  const scrollToSection = (sectionId) => {
+    let scrollDelay = 0;
+    if (sectionId.startsWith('pillar-')) {
+      const pillarKey = sectionId.replace('pillar-', '');
+      if (expandedPillar !== pillarKey) {
+        setExpandedPillar(pillarKey);
+        scrollDelay = 120; // wait briefly for accordion layout transition to initialize
+      }
+    }
+
+    setTimeout(() => {
+      const el = document.getElementById(`section-${sectionId}`);
+      if (el) {
+        const container = document.querySelector('.workspace-content');
+        const isDesktop = window.innerWidth > 768;
+        if (isDesktop && container) {
+          const relativeTop = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+          container.scrollTo({
+            top: relativeTop - 10,
+            behavior: 'smooth'
+          });
+        } else {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    }, scrollDelay);
   };
 
   return (
@@ -523,13 +616,14 @@ function App() {
             <section className="navigator-wrapper">
               {/* Logo, Title & Subtitle Area */}
               <div className="navigator-header">
-                <div className="navigator-logo-row">
-                  <svg className="navigator-logo-sparkle" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div className="navigator-logo-row" style={{ gap: '10px', flexWrap: 'wrap' }}>
+                  <svg className="navigator-logo-sparkle" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707-.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
                   </svg>
-                  <h1 className="navigator-title">bQuest Navigator</h1>
+                  <h1 className="navigator-title" style={{ fontSize: '17px', fontWeight: '700', margin: '0', letterSpacing: '-0.3px', display: 'inline-flex', alignItems: 'center' }}>bQuest Navigator</h1>
+                  <span className="header-divider-bar" style={{ color: '#c2d6d4', margin: '0 6px', fontSize: '15px', userSelect: 'none' }}>|</span>
+                  <p className="navigator-subtitle" style={{ fontSize: '13px', margin: '0', color: 'var(--text-gray)', fontWeight: '500' }}>AI-powered care planning assistant</p>
                 </div>
-                <p className="navigator-subtitle">AI-powered care planning assistant</p>
               </div>
 
               {/* Chatbox Stream */}
@@ -618,13 +712,13 @@ function App() {
             /* Redesigned Your Journey Screen */
             <div style={{ width: '100%' }}>
 
-              <div className="journey-layout" style={{ marginTop: '16px' }}>
-                {/* Left Column Sidebar (Floating Essential Resources) */}
-                <div className="journey-left-sidebar">
-                  {/* Scrollspy Sidebar Indicator Menu */}
-                  <div className="scrollspy-card">
+              <div className="journey-layout-three-col">
+                {/* Unified Planner Card */}
+                <div className="planner-workspace-card">
+                  {/* Left Column: Planning Sections list */}
+                  <div className="workspace-sidebar">
                     <span className="scrollspy-title" style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px', display: 'block', textTransform: 'none', letterSpacing: 'normal' }}>Planning Sections</span>
-                    <ul className="scrollspy-list" style={{ marginBottom: '16px' }}>
+                    <ul className="scrollspy-list" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px', listStyle: 'none', padding: '0' }}>
                       <li>
                         <button 
                           className={`scrollspy-item ${activeSection === 'journey' ? 'active' : ''}`}
@@ -654,7 +748,7 @@ function App() {
                         
                         {/* Dynamic Collapsible Sub-list for 4 sub-stages */}
                         {(activeSection === 'stage' || activeSection.startsWith('pillar-')) && (
-                          <ul className="scrollspy-sub-list" style={{ animation: 'fadeIn 0.3s ease' }}>
+                          <ul className="scrollspy-sub-list" style={{ animation: 'fadeIn 0.3s ease', listStyle: 'none', paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '1.5px solid #edf2f1', marginTop: '8px' }}>
                             <li>
                               <button 
                                 className={`scrollspy-sub-item ${activeSection === 'pillar-plan' ? 'active' : ''}`}
@@ -704,168 +798,299 @@ function App() {
                     </button>
                   </div>
 
-                  <div className="journey-right-card">
-                    <h2 className="resources-title">Essential Resources</h2>
-                    <p className="resources-subtitle">
-                      Start here for expert guidance and support on your care journey.
-                    </p>
-                    
-                    <div className="resources-list">
-                      <a href="https://www.alz.org" target="_blank" rel="noopener noreferrer" className="resource-item-card">
-                        <div className="resource-header-row">
-                          <span className="resource-name">Alzheimer's Association</span>
-                          <svg className="resource-link-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="7" y1="17" x2="17" y2="7"></line>
-                            <polyline points="7 7 17 7 17 17"></polyline>
-                          </svg>
-                        </div>
-                        <p className="resource-desc">24/7 helpline and local support groups</p>
-                        <span className="resource-domain">alz.org</span>
-                      </a>
+                  {/* Right Column: Content area */}
+                  <div className="workspace-content">
+                    {/* We Understand Your Journey Section (Unified Style) */}
+                    <div id="section-journey" style={{ paddingBottom: '32px', borderBottom: '1px solid #edf2f1' }}>
+                      <span style={{ fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--primary-color)', letterSpacing: '1px' }}>Your Care Planning Journey</span>
+                      <h1 className="journey-hero-title" style={{ fontSize: '20px', textAlign: 'left', marginTop: '6px', marginBottom: '8px', fontWeight: '600' }}>We Understand Your Journey</h1>
+                      <div className="care-stage-badge" style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        backgroundColor: '#eef5f4',
+                        color: 'var(--primary-color)',
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        marginBottom: '12px',
+                        border: '1.5px solid rgba(61, 120, 114, 0.15)'
+                      }}>
+                        Your Care stage: Cognitive Decline
+                      </div>
+                      <p className="journey-hero-subtitle" style={{ textAlign: 'left', margin: '0', fontSize: '13.5px', color: 'var(--text-gray)', maxWidth: '100%', lineHeight: '1.6' }}>
+                        Thank you for sharing your story with us. We know this is a challenging time, and we're honored to walk alongside you as you plan for {chatRelation ? chatRelation.toLowerCase() : "your mother"}'s care.
+                      </p>
+                      {/* Removed Download Care Summary Button */}
+                    </div>
 
-                      <a href="https://www.caregiver.org" target="_blank" rel="noopener noreferrer" className="resource-item-card">
-                        <div className="resource-header-row">
-                          <span className="resource-name">Family Caregiver Alliance</span>
-                          <svg className="resource-link-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="7" y1="17" x2="17" y2="7"></line>
-                            <polyline points="7 7 17 7 17 17"></polyline>
-                          </svg>
-                        </div>
-                        <p className="resource-desc">Education and state-by-state resources</p>
-                        <span className="resource-domain">caregiver.org</span>
-                      </a>
+                    {/* What You've Shared Summary Section (Unified Style) */}
+                    <div id="section-shared" style={{ paddingBottom: '32px', borderBottom: '1px solid #edf2f1' }}>
+                      <h2 className="shared-summary-title" style={{ fontSize: '17px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '16px' }}>What You've Shared</h2>
+                      <p className="shared-summary-para" style={{ fontSize: '13.5px', lineHeight: '1.6', color: 'var(--text-gray)', marginBottom: '16px' }}>
+                        You're planning care <strong>{chatRelation ? chatRelation.toLowerCase() : 'for a family member'}</strong> — your mother, who is showing early signs of memory loss.
+                        The fact that you're <strong>{chatTimeline ? chatTimeline.toLowerCase() : 'planning ahead'}</strong> rather than responding to a crisis is a profound gift. It means you have the precious opportunity to make thoughtful decisions, to explore options without urgency clouding your judgment, and to build a support system before the road becomes more difficult.
+                      </p>
+                      
+                      <div className="shared-quote-box" style={{
+                        backgroundColor: '#f7f6f2',
+                        borderRadius: '10px',
+                        padding: '16px 20px',
+                        border: '1px solid #e9eceb',
+                        margin: '20px 0',
+                        fontStyle: 'italic',
+                        fontSize: '13.5px',
+                        lineHeight: '1.5',
+                        color: 'var(--text-dark)',
+                        fontWeight: '500',
+                        textAlign: 'center'
+                      }}>
+                        "{chatSituation || "My mother is showing early signs of memory loss and I want to plan ahead for her care needs."}"
+                      </div>
+                      
+                      <p className="shared-summary-para" style={{ fontSize: '13.5px', lineHeight: '1.6', color: 'var(--text-gray)', margin: '0' }}>
+                        You're seeking support in the <strong>{chatZip || '80202'}</strong> area. These details help us connect you with the right resources and providers who can meet your mother where she is, with the care and compassion she deserves.
+                      </p>
+                    </div>
 
-                      <a href="https://www.medicare.gov" target="_blank" rel="noopener noreferrer" className="resource-item-card">
-                        <div className="resource-header-row">
-                          <span className="resource-name">Medicare</span>
-                          <svg className="resource-link-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="7" y1="17" x2="17" y2="7"></line>
-                            <polyline points="7 7 17 7 17 17"></polyline>
-                          </svg>
+                    {/* Understand Your Care Stage Educational Section (Unified Style) */}
+                    <div id="section-stage" style={{ paddingBottom: '32px', borderBottom: '1px solid #edf2f1' }}>
+                      <h2 className="care-stage-title" style={{ fontSize: '19px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px' }}>Understand Your Care Stage</h2>
+                      <span className="care-stage-subtitle" style={{ fontSize: '13px', color: 'var(--text-light)', fontWeight: '500', display: 'block', marginBottom: '16px' }}>Explore key areas of your care planning journey.</span>
+                      
+                      <p className="care-stage-philosophy" style={{ fontSize: '14.5px', lineHeight: '1.6', color: 'var(--text-gray)', fontWeight: '600', marginBottom: '12px' }}>
+                        Aging at home doesn't happen by accident—it happens with a plan.
+                      </p>
+                      <p className="care-stage-detail" style={{ fontSize: '13.5px', lineHeight: '1.65', color: 'var(--text-gray)', marginBottom: '24px' }}>
+                        The earlier you think through key decisions, the more control you have over how and where care happens. Below are the core areas to consider when planning to age in place. You don't need to solve everything at once—but understanding what to think about (and when) can help you avoid stress, rushed decisions, and unnecessary costs later.
+                      </p>
+
+                      <div className="pillars-vertical-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div className={`pillar-card ${expandedPillar === 'plan' ? 'expanded' : ''} ${activeSection === 'pillar-plan' ? 'active' : ''}`} id="section-pillar-plan">
+                          <div className="pillar-card-header" onClick={() => setExpandedPillar(expandedPillar === 'plan' ? null : 'plan')}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
+                              <h3 className="pillar-card-title" style={{ fontSize: '15px', color: (activeSection === 'pillar-plan' || expandedPillar === 'plan') ? 'var(--primary-color)' : 'var(--text-dark)', marginBottom: '0' }}>1. Start with a Plan & Put Protections in Place</h3>
+                              <p className="pillar-card-desc" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.5', marginBottom: '0' }}>
+                                Aging in place starts with understanding current needs, anticipating what may change, and making sure protections are in place.
+                              </p>
+                            </div>
+                            <svg className="pillar-card-chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                          </div>
+                          <div className="pillar-card-details">
+                            <div className="pillar-why-box">
+                              <strong>Why this matters:</strong>
+                              <span>Without a clear plan and decision-makers in place, families often face delays, confusion, or court involvement during a crisis.</span>
+                            </div>
+                            <div className="pillar-considerations">
+                              <strong>As you think about this, consider:</strong>
+                              <ul>
+                                <li>Do we understand what support may be needed now vs. later?</li>
+                                <li>Is the home safe and adaptable as needs change?</li>
+                                <li>Are the right legal documents and decision-makers in place?</li>
+                              </ul>
+                            </div>
+                            <div className="pillar-professionals">
+                              <strong>Professionals who support this:</strong>
+                              <div className="professionals-chips">
+                                <span className="professional-chip">Aging Life Care Manager®</span>
+                                <span className="professional-chip">Home Modification Specialist</span>
+                                <span className="professional-chip">Estate Planning Attorney</span>
+                                <span className="professional-chip">Professional Fiduciary & Trustee</span>
+                                <span className="professional-chip">Corporate Trustee</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <p className="resource-desc">Coverage for care services</p>
-                        <span className="resource-domain">medicare.gov</span>
-                      </a>
+
+                        <div className={`pillar-card ${expandedPillar === 'team' ? 'expanded' : ''} ${activeSection === 'pillar-team' ? 'active' : ''}`} id="section-pillar-team">
+                          <div className="pillar-card-header" onClick={() => setExpandedPillar(expandedPillar === 'team' ? null : 'team')}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
+                              <h3 className="pillar-card-title" style={{ fontSize: '15px', color: (activeSection === 'pillar-team' || expandedPillar === 'team') ? 'var(--primary-color)' : 'var(--text-dark)', marginBottom: '0' }}>2. Build Your Care Team</h3>
+                              <p className="pillar-card-desc" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.5', marginBottom: '0' }}>
+                                Aging at home often requires a mix of hands-on support, medical care, and professional coordination.
+                              </p>
+                            </div>
+                            <svg className="pillar-card-chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                          </div>
+                          <div className="pillar-card-details">
+                            <div className="pillar-why-box">
+                              <strong>Why this matters:</strong>
+                              <span>Care needs rarely stay the same. Having trusted providers in place reduces stress and allows you to respond quickly when things change.</span>
+                            </div>
+                            <div className="pillar-considerations">
+                              <strong>As you think about this, consider:</strong>
+                              <ul>
+                                <li>Who will help with daily needs at home?</li>
+                                <li>What medical or nursing care might be needed?</li>
+                                <li>Who will help coordinate care across providers?</li>
+                              </ul>
+                            </div>
+                            <div className="pillar-professionals">
+                              <strong>Professionals who support this:</strong>
+                              <div className="professionals-chips">
+                                <span className="professional-chip">Home Care Nursing (Agency-Based)</span>
+                                <span className="professional-chip">Home Care Provider (non-medical)</span>
+                                <span className="professional-chip">Transportation Services</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className={`pillar-card ${expandedPillar === 'benefits' ? 'expanded' : ''} ${activeSection === 'pillar-benefits' ? 'active' : ''}`} id="section-pillar-benefits">
+                          <div className="pillar-card-header" onClick={() => setExpandedPillar(expandedPillar === 'benefits' ? null : 'benefits')}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
+                              <h3 className="pillar-card-title" style={{ fontSize: '15px', color: (activeSection === 'pillar-benefits' || expandedPillar === 'benefits') ? 'var(--primary-color)' : 'var(--text-dark)', marginBottom: '0' }}>3. Coverage & Benefits</h3>
+                              <p className="pillar-card-desc" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.5', marginBottom: '0' }}>
+                                Understanding Medicare, insurance, and long-term care coverage helps you avoid costly surprises.
+                              </p>
+                            </div>
+                            <svg className="pillar-card-chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                          </div>
+                          <div className="pillar-card-details">
+                            <div className="pillar-why-box">
+                              <strong>Why this matters:</strong>
+                              <span>Many families assume more is covered than actually is. Clarity upfront helps you plan realistically and maximize available benefits.</span>
+                            </div>
+                            <div className="pillar-considerations">
+                              <strong>As you think about this, consider:</strong>
+                              <ul>
+                                <li>What does Medicare cover—and what doesn't it?</li>
+                                <li>Do you have long-term care insurance or other coverage?</li>
+                                <li>When should coverage decisions be made?</li>
+                              </ul>
+                            </div>
+                            <div className="pillar-professionals">
+                              <strong>Professionals who support this:</strong>
+                              <div className="professionals-chips">
+                                <span className="professional-chip">Independent Medicare Agent/Broker</span>
+                                <span className="professional-chip">Healthcare & LTC Navigator</span>
+                                <span className="professional-chip">Independent Insurance Broker</span>
+                                <span className="professional-chip">LTC Insurance Specialist</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className={`pillar-card ${expandedPillar === 'costs' ? 'expanded' : ''} ${activeSection === 'pillar-costs' ? 'active' : ''}`} id="section-pillar-costs">
+                          <div className="pillar-card-header" onClick={() => setExpandedPillar(expandedPillar === 'costs' ? null : 'costs')}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
+                              <h3 className="pillar-card-title" style={{ fontSize: '15px', color: (activeSection === 'pillar-costs' || expandedPillar === 'costs') ? 'var(--primary-color)' : 'var(--text-dark)', marginBottom: '0' }}>4. Costs & Financials</h3>
+                              <p className="pillar-card-desc" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.5', marginBottom: '0' }}>
+                                Care costs can increase over time. Staying organized financially helps you make confident decisions.
+                              </p>
+                            </div>
+                            <svg className="pillar-card-chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                          </div>
+                          <div className="pillar-card-details">
+                            <div className="pillar-why-box">
+                              <strong>Why this matters:</strong>
+                              <span>Without a clear financial picture, families often delay decisions or make reactive choices that impact long-term stability.</span>
+                            </div>
+                            <div className="pillar-considerations">
+                              <strong>As you think about this, consider:</strong>
+                              <ul>
+                                <li>What will care realistically cost over time?</li>
+                                <li>How will those costs be covered?</li>
+                                <li>Are finances, bills, and important documents organized?</li>
+                              </ul>
+                            </div>
+                            <div className="pillar-professionals">
+                              <strong>Professionals who support this:</strong>
+                              <div className="professionals-chips">
+                                <span className="professional-chip">Financial Advisor</span>
+                                <span className="professional-chip">Daily Money Manager</span>
+                                <span className="professional-chip">Legacy Planning Organizer</span>
+                                <span className="professional-chip">Funeral Pre-Needs Sales</span>
+                                <span className="professional-chip">Reverse Mortgage Specialist</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom CTA Section (Unified Style) */}
+                    <div id="section-next-steps" style={{
+                      backgroundColor: '#eef5f4',
+                      borderRadius: '12px',
+                      padding: '28px',
+                      border: '1px solid #c2d6d4',
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '16px'
+                    }}>
+                      <p className="journey-cta-text" style={{ fontSize: '14px', lineHeight: '1.6', color: 'var(--text-gray)', maxWidth: '520px', margin: '0' }}>
+                        You're not walking this path alone. We're here to help you find the right people — specialists, caregivers, coordinators, and fellow travelers who understand this journey. Together, we'll build a network of support that honors your mother's dignity and your own wellbeing.
+                      </p>
+                      <span className="journey-cta-subtitle" style={{ fontSize: '13.5px', fontWeight: '700', color: 'var(--primary-color)' }}>Let's take the next step together.</span>
+                      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <button className={`meet-team-btn ${activeSection === 'next-steps' ? 'filled' : 'outline'}`} onClick={handleCompleteJourney}>
+                          Meet Your Care Team
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Right Column (Scrollable details content) */}
-                <div className="journey-scrollable-content">
-                  
-                  {/* We Understand Your Journey Section */}
-                  <div className="shared-summary-card" id="section-journey">
-                    <div style={{ marginBottom: '0' }}>
-                      <span style={{ fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--primary-color)', letterSpacing: '1px' }}>Your Care Planning Journey</span>
-                      <h1 className="journey-hero-title" style={{ fontSize: '20px', textAlign: 'left', marginTop: '6px', marginBottom: '10px', fontWeight: '600' }}>We Understand Your Journey</h1>
-                      <p className="journey-hero-subtitle" style={{ textAlign: 'left', margin: '0 0 16px 0', fontSize: '13.5px', color: 'var(--text-gray)', maxWidth: '100%' }}>
-                        Thank you for sharing your story with us. We know this is a challenging time, and we're honored to walk alongside you as you plan for {chatRelation ? chatRelation.toLowerCase() : "your mother"}'s care.
-                      </p>
-                      <button className="journey-download-btn" style={{ padding: '10px 24px', fontSize: '13.5px' }} onClick={() => {
-                        const element = document.createElement("a");
-                        const file = new Blob([
-                          `BQUEST CARE PLANNING PORTAL SUMMARY\n`,
-                          `===================================\n\n`,
-                          `You are planning care for your mother who is showing early signs of memory loss.\n`,
-                          `Location Zip Code: ${chatZip || '80202'}\n`,
-                          `Planning Timeline: ${chatTimeline || 'Planning ahead'}\n`,
-                          `Family Situation Note:\n"${chatSituation || "Planning early signs of memory loss care options."}"\n\n`,
-                          `Thank you for using bQuest Financial Advisor Portal.\n`
-                        ], { type: 'text/plain' });
-                        element.href = URL.createObjectURL(file);
-                        element.download = "bQuest_Care_Planning_Summary.txt";
-                        document.body.appendChild(element);
-                        element.click();
-                        document.body.removeChild(element);
-                      }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                          <polyline points="7 10 12 15 17 10"/>
-                          <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                        Download Care Summary
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* What You've Shared Summary Section */}
-                  <div className="shared-summary-card" id="section-shared">
-                    <h2 className="shared-summary-title">What You've Shared</h2>
-                    <p className="shared-summary-para">
-                      You're planning care <strong>{chatRelation ? chatRelation.toLowerCase() : 'for a family member'}</strong> — your mother, who is showing early signs of memory loss.
-                      The fact that you're <strong>{chatTimeline ? chatTimeline.toLowerCase() : 'planning ahead'}</strong> rather than responding to a crisis is a profound gift. It means you have the precious opportunity to make thoughtful decisions, to explore options without urgency clouding your judgment, and to build a support system before the road becomes more difficult.
+                {/* Right Column: Essential Resources Sidebar Card */}
+                <div className="journey-right-sidebar">
+                  <div className="journey-right-card">
+                    <h2 className="resources-title" style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px' }}>Essential Resources</h2>
+                    <p className="resources-subtitle" style={{ fontSize: '12px', color: 'var(--text-gray)', lineHeight: '1.5', marginBottom: '16px' }}>
+                      Start here for expert guidance and support on your care journey.
                     </p>
                     
-                    {/* Exact chatbot response situation note quote callout */}
-                    <div className="shared-quote-box">
-                      "{chatSituation || "My mother is showing early signs of memory loss and I want to plan ahead for her care needs."}"
-                    </div>
-                    
-                    <p className="shared-summary-para">
-                      You're seeking support in the <strong>{chatZip || '80202'}</strong> area. These details help us connect you with the right resources and providers who can meet your mother where she is, with the care and compassion she deserves.
-                    </p>
-                  </div>
+                    <div className="resources-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <a href="https://www.alz.org" target="_blank" rel="noopener noreferrer" className="resource-item-card" style={{ padding: '12px 16px' }}>
+                        <div className="resource-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span className="resource-name" style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-dark)' }}>Alzheimer's Association</span>
+                          <svg className="resource-link-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="7" y1="17" x2="17" y2="7"></line>
+                            <polyline points="7 7 17 7 17 17"></polyline>
+                          </svg>
+                        </div>
+                        <p className="resource-desc" style={{ fontSize: '12px', color: 'var(--text-gray)', margin: '0 0 4px 0' }}>24/7 helpline and local support groups</p>
+                        <span className="resource-domain" style={{ fontSize: '11px', fontWeight: '600', color: 'var(--primary-color)' }}>alz.org</span>
+                      </a>
 
-                  {/* Understand Your Care Stage Educational Section */}
-                  <div className="care-stage-hub" id="section-stage">
-                    <h2 className="care-stage-title">Understand Your Care Stage</h2>
-                    <span className="care-stage-subtitle">Explore key areas of your care planning journey.</span>
-                    
-                    <p className="care-stage-philosophy">
-                      Aging at home doesn't happen by accident—it happens with a plan.
-                    </p>
-                    <p className="care-stage-detail">
-                      The earlier you think through key decisions, the more control you have over how and where care happens. Below are the core areas to consider when planning to age in place. You don't need to solve everything at once—but understanding what to think about (and when) can help you avoid stress, rushed decisions, and unnecessary costs later.
-                    </p>
+                      <a href="https://www.caregiver.org" target="_blank" rel="noopener noreferrer" className="resource-item-card" style={{ padding: '12px 16px' }}>
+                        <div className="resource-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span className="resource-name" style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-dark)' }}>Family Caregiver Alliance</span>
+                          <svg className="resource-link-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="7" y1="17" x2="17" y2="7"></line>
+                            <polyline points="7 7 17 7 17 17"></polyline>
+                          </svg>
+                        </div>
+                        <p className="resource-desc" style={{ fontSize: '12px', color: 'var(--text-gray)', margin: '0 0 4px 0' }}>Education and state-by-state resources</p>
+                        <span className="resource-domain" style={{ fontSize: '11px', fontWeight: '600', color: 'var(--primary-color)' }}>caregiver.org</span>
+                      </a>
 
-                    {/* Vertically stacked scrollable cards */}
-                    <div className="pillars-vertical-list">
-                      <div className={`pillar-card ${activeSection === 'pillar-plan' ? 'active' : ''}`} id="section-pillar-plan">
-                        <h3 className="pillar-card-title">Start with a Plan & Put Protections in Place</h3>
-                        <p className="pillar-card-desc">
-                          Before anything else, step back and look at the full picture.
-                        </p>
-                      </div>
-
-                      <div className={`pillar-card ${activeSection === 'pillar-team' ? 'active' : ''}`} id="section-pillar-team">
-                        <h3 className="pillar-card-title">Build Your Care Team</h3>
-                        <p className="pillar-card-desc">
-                          Once you have a plan, the next step is putting the right care in place.
-                        </p>
-                      </div>
-
-                      <div className={`pillar-card ${activeSection === 'pillar-benefits' ? 'active' : ''}`} id="section-pillar-benefits">
-                        <h3 className="pillar-card-title">Understand Coverage & Benefits</h3>
-                        <p className="pillar-card-desc">
-                          Care is only part of the equation—how you pay for it matters just as much.
-                        </p>
-                      </div>
-
-                      <div className={`pillar-card ${activeSection === 'pillar-costs' ? 'active' : ''}`} id="section-pillar-costs">
-                        <h3 className="pillar-card-title">Understand Costs & Get Financially Organized</h3>
-                        <p className="pillar-card-desc">
-                          Planning to stay at home also means planning how to sustain it financially.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bottom Call-to-action banner panel */}
-                  <div className="journey-cta-panel" id="section-next-steps">
-                    <p className="journey-cta-text">
-                      You're not walking this path alone. We're here to help you find the right people — specialists, caregivers, coordinators, and fellow travelers who understand this journey. Together, we'll build a network of support that honors your mother's dignity and your own wellbeing.
-                    </p>
-                    <span className="journey-cta-subtitle">Let's take the next step together.</span>
-                    
-                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                      <button className={`meet-team-btn ${activeSection === 'next-steps' ? 'filled' : 'outline'}`} onClick={handleCompleteJourney}>
-                        Meet Your Care Team
-                      </button>
+                      <a href="https://www.medicare.gov" target="_blank" rel="noopener noreferrer" className="resource-item-card" style={{ padding: '12px 16px' }}>
+                        <div className="resource-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span className="resource-name" style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-dark)' }}>Medicare</span>
+                          <svg className="resource-link-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="7" y1="17" x2="17" y2="7"></line>
+                            <polyline points="7 7 17 7 17 17"></polyline>
+                          </svg>
+                        </div>
+                        <p className="resource-desc" style={{ fontSize: '12px', color: 'var(--text-gray)', margin: '0 0 4px 0' }}>Coverage for care services</p>
+                        <span className="resource-domain" style={{ fontSize: '11px', fontWeight: '600', color: 'var(--primary-color)' }}>medicare.gov</span>
+                      </a>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+              </div>
         )
         ) : (
           <div style={{
@@ -998,6 +1223,8 @@ function App() {
           </div>
         </div>
       )}
+
+
 
       {/* Notification Toast */}
       {showNotification && (
