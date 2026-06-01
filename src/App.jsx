@@ -225,6 +225,7 @@ function App() {
   });
 
   const [activeSection, setActiveSection] = useState('journey');
+  const [activePillarTab, setActivePillarTab] = useState('plan');
 
   React.useEffect(() => {
     if (activeTab !== 'NAVIGATOR' || navigatorScreen !== 'JOURNEY') return;
@@ -248,22 +249,31 @@ function App() {
       let scrollPos;
       let nextTop, pCostsTop, pBenefitsTop, pTeamTop, pPlanTop, stageTop, sharedTop;
 
-      const getRelativeOffsetTop = (el, parent) => {
-        if (!el || !parent) return 0;
-        return el.getBoundingClientRect().top - parent.getBoundingClientRect().top + parent.scrollTop;
+      const getStaticOffsetTop = (el) => {
+        if (!el) return 0;
+        let top = 0;
+        let current = el;
+        const parent = document.querySelector('.workspace-content');
+        while (current && current !== parent && current !== document.body) {
+          top += current.offsetTop;
+          current = current.offsetParent;
+        }
+        return top;
       };
 
       if (isDesktop && containerEl) {
-        scrollPos = containerEl.scrollTop + 140; // tighter offset adjustment within container
-        nextTop = getRelativeOffsetTop(nextEl, containerEl);
-        pCostsTop = pCostsEl ? getRelativeOffsetTop(pCostsEl, containerEl) : 0;
-        pBenefitsTop = pBenefitsEl ? getRelativeOffsetTop(pBenefitsEl, containerEl) : 0;
-        pTeamTop = pTeamEl ? getRelativeOffsetTop(pTeamEl, containerEl) : 0;
-        pPlanTop = pPlanEl ? getRelativeOffsetTop(pPlanEl, containerEl) : 0;
-        stageTop = getRelativeOffsetTop(stageEl, containerEl);
-        sharedTop = getRelativeOffsetTop(sharedEl, containerEl);
+        // Use container scroll center point
+        scrollPos = containerEl.scrollTop + (containerEl.clientHeight / 2); 
+        nextTop = getStaticOffsetTop(nextEl);
+        pCostsTop = getStaticOffsetTop(pCostsEl);
+        pBenefitsTop = getStaticOffsetTop(pBenefitsEl);
+        pTeamTop = getStaticOffsetTop(pTeamEl);
+        pPlanTop = getStaticOffsetTop(pPlanEl);
+        stageTop = getStaticOffsetTop(stageEl);
+        sharedTop = getStaticOffsetTop(sharedEl);
       } else {
-        scrollPos = window.scrollY + 250; // window offset
+        // Use window center point for mobile
+        scrollPos = window.scrollY + (window.innerHeight / 2); 
         const getAbsoluteOffsetTop = (el) => el ? el.getBoundingClientRect().top + window.scrollY : 0;
         nextTop = getAbsoluteOffsetTop(nextEl);
         pCostsTop = getAbsoluteOffsetTop(pCostsEl);
@@ -290,6 +300,21 @@ function App() {
         setActiveSection('shared');
       } else {
         setActiveSection('journey');
+      }
+
+      // Animate vertical timeline filling connector line dynamically
+      const fillLine = document.querySelector('.timeline-progress-fill-line');
+      if (isDesktop && containerEl && fillLine && pPlanEl && pCostsEl) {
+        const startOffset = getRelativeOffsetTop(pPlanEl, containerEl) - 140;
+        const endOffset = getRelativeOffsetTop(pCostsEl, containerEl) - 140;
+        const currentScroll = containerEl.scrollTop;
+        
+        let progressPercent = 0;
+        if (currentScroll >= startOffset) {
+          progressPercent = ((currentScroll - startOffset) / (endOffset - startOffset)) * 100;
+          progressPercent = Math.max(0, Math.min(100, progressPercent));
+        }
+        fillLine.style.height = `${progressPercent}%`;
       }
     };
 
@@ -352,31 +377,23 @@ function App() {
   }, [chatMessages]);
 
   const scrollToSection = (sectionId) => {
-    let scrollDelay = 0;
-    if (sectionId.startsWith('pillar-')) {
-      const pillarKey = sectionId.replace('pillar-', '');
-      if (expandedPillar !== pillarKey) {
-        setExpandedPillar(pillarKey);
-        scrollDelay = 120; // wait briefly for accordion layout transition to initialize
+    const el = document.getElementById(`section-${sectionId}`);
+    if (el) {
+      const container = document.querySelector('.workspace-content');
+      const isDesktop = window.innerWidth > 768;
+      if (isDesktop && container) {
+        const relativeTop = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+        // Center the card in the middle of the scroll container viewport
+        const targetHeight = sectionId.startsWith('pillar-') ? 240 : el.clientHeight;
+        const offset = (container.clientHeight - targetHeight) / 2;
+        container.scrollTo({
+          top: relativeTop - Math.max(20, offset),
+          behavior: 'smooth'
+        });
+      } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
-
-    setTimeout(() => {
-      const el = document.getElementById(`section-${sectionId}`);
-      if (el) {
-        const container = document.querySelector('.workspace-content');
-        const isDesktop = window.innerWidth > 768;
-        if (isDesktop && container) {
-          const relativeTop = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
-          container.scrollTo({
-            top: relativeTop - 10,
-            behavior: 'smooth'
-          });
-        } else {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }
-    }, scrollDelay);
   };
 
   return (
@@ -746,47 +763,45 @@ function App() {
                           Understand Your Care Stage
                         </button>
                         
-                        {/* Dynamic Collapsible Sub-list for 4 sub-stages */}
-                        {(activeSection === 'stage' || activeSection.startsWith('pillar-')) && (
-                          <ul className="scrollspy-sub-list" style={{ animation: 'fadeIn 0.3s ease', listStyle: 'none', paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '1.5px solid #edf2f1', marginTop: '8px' }}>
-                            <li>
-                              <button 
-                                className={`scrollspy-sub-item ${activeSection === 'pillar-plan' ? 'active' : ''}`}
-                                onClick={() => scrollToSection('pillar-plan')}
-                              >
-                                <span className="scrollspy-sub-dot"></span>
-                                1. Start with a Plan
-                              </button>
-                            </li>
-                            <li>
-                              <button 
-                                className={`scrollspy-sub-item ${activeSection === 'pillar-team' ? 'active' : ''}`}
-                                onClick={() => scrollToSection('pillar-team')}
-                              >
-                                <span className="scrollspy-sub-dot"></span>
-                                2. Build Your Team
-                              </button>
-                            </li>
-                            <li>
-                              <button 
-                                className={`scrollspy-sub-item ${activeSection === 'pillar-benefits' ? 'active' : ''}`}
-                                onClick={() => scrollToSection('pillar-benefits')}
-                              >
-                                <span className="scrollspy-sub-dot"></span>
-                                3. Coverage & Benefits
-                              </button>
-                            </li>
-                            <li>
-                              <button 
-                                className={`scrollspy-sub-item ${activeSection === 'pillar-costs' ? 'active' : ''}`}
-                                onClick={() => scrollToSection('pillar-costs')}
-                              >
-                                <span className="scrollspy-sub-dot"></span>
-                                4. Costs & Financials
-                              </button>
-                            </li>
-                          </ul>
-                        )}
+                        {/* Always-visible Sub-list for 4 sub-stages */}
+                        <ul className="scrollspy-sub-list" style={{ animation: 'fadeIn 0.3s ease', listStyle: 'none', paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '1.5px solid #edf2f1', marginTop: '8px' }}>
+                          <li>
+                            <button 
+                              className={`scrollspy-sub-item ${activeSection === 'pillar-plan' ? 'active' : ''}`}
+                              onClick={() => scrollToSection('pillar-plan')}
+                            >
+                              <span className="scrollspy-sub-dot"></span>
+                              1. Start with a Plan
+                            </button>
+                          </li>
+                          <li>
+                            <button 
+                              className={`scrollspy-sub-item ${activeSection === 'pillar-team' ? 'active' : ''}`}
+                              onClick={() => scrollToSection('pillar-team')}
+                            >
+                              <span className="scrollspy-sub-dot"></span>
+                              2. Build Your Team
+                            </button>
+                          </li>
+                          <li>
+                            <button 
+                              className={`scrollspy-sub-item ${activeSection === 'pillar-benefits' ? 'active' : ''}`}
+                              onClick={() => scrollToSection('pillar-benefits')}
+                            >
+                              <span className="scrollspy-sub-dot"></span>
+                              3. Coverage & Benefits
+                            </button>
+                          </li>
+                          <li>
+                            <button 
+                              className={`scrollspy-sub-item ${activeSection === 'pillar-costs' ? 'active' : ''}`}
+                              onClick={() => scrollToSection('pillar-costs')}
+                            >
+                              <span className="scrollspy-sub-dot"></span>
+                              4. Costs & Financials
+                            </button>
+                          </li>
+                        </ul>
                       </li>
                     </ul>
                     
@@ -865,151 +880,168 @@ function App() {
                         The earlier you think through key decisions, the more control you have over how and where care happens. Below are the core areas to consider when planning to age in place. You don't need to solve everything at once—but understanding what to think about (and when) can help you avoid stress, rushed decisions, and unnecessary costs later.
                       </p>
 
-                      <div className="pillars-vertical-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div className={`pillar-card ${expandedPillar === 'plan' ? 'expanded' : ''} ${activeSection === 'pillar-plan' ? 'active' : ''}`} id="section-pillar-plan">
-                          <div className="pillar-card-header" onClick={() => setExpandedPillar(expandedPillar === 'plan' ? null : 'plan')}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
-                              <h3 className="pillar-card-title" style={{ fontSize: '15px', color: (activeSection === 'pillar-plan' || expandedPillar === 'plan') ? 'var(--primary-color)' : 'var(--text-dark)', marginBottom: '0' }}>1. Start with a Plan & Put Protections in Place</h3>
-                              <p className="pillar-card-desc" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.5', marginBottom: '0' }}>
-                                Aging in place starts with understanding current needs, anticipating what may change, and making sure protections are in place.
-                              </p>
-                            </div>
-                            <svg className="pillar-card-chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                          </div>
-                          <div className="pillar-card-details">
-                            <div className="pillar-why-box">
-                              <strong>Why this matters:</strong>
-                              <span>Without a clear plan and decision-makers in place, families often face delays, confusion, or court involvement during a crisis.</span>
-                            </div>
-                            <div className="pillar-considerations">
-                              <strong>As you think about this, consider:</strong>
-                              <ul>
-                                <li>Do we understand what support may be needed now vs. later?</li>
-                                <li>Is the home safe and adaptable as needs change?</li>
-                                <li>Are the right legal documents and decision-makers in place?</li>
-                              </ul>
-                            </div>
-                            <div className="pillar-professionals">
-                              <strong>Professionals who support this:</strong>
-                              <div className="professionals-chips">
-                                <span className="professional-chip">Aging Life Care Manager®</span>
-                                <span className="professional-chip">Home Modification Specialist</span>
-                                <span className="professional-chip">Estate Planning Attorney</span>
-                                <span className="professional-chip">Professional Fiduciary & Trustee</span>
-                                <span className="professional-chip">Corporate Trustee</span>
+                      <div className="timeline-journey-container" style={{ position: 'relative', paddingLeft: '36px', marginTop: '24px' }}>
+                        {/* Interactive vertical glowing connector line */}
+                        <div className="timeline-track-line">
+                          <div className="timeline-progress-fill-line"></div>
+                        </div>
+
+                        {/* Step 1: Plan */}
+                        <div className={`timeline-journey-step ${activeSection === 'pillar-plan' ? 'active' : ''}`} id="section-pillar-plan">
+                          <div className="timeline-milestone-dot">1</div>
+                          <div className="timeline-journey-card" onClick={() => scrollToSection('pillar-plan')}>
+                            <h3 className="timeline-card-title">1. Start with a Plan & Put Protections in Place</h3>
+                            
+                            <div className="timeline-card-split-row">
+                              <div className="timeline-card-left-col">
+                                <p className="timeline-card-desc">
+                                  Aging in place starts with understanding current needs, anticipating what may change, and making sure protections are in place. This includes legally and financially enabling the right people to step in when needed, and assessing whether the home itself is safe for long-term living.
+                                </p>
+                                <div className="pillar-why-box">
+                                  <strong>Why this matters:</strong>
+                                  <span>Without a clear plan and decision-makers in place, families often face delays, confusion, or court involvement during a crisis.</span>
+                                </div>
+                              </div>
+                              
+                              <div className="timeline-card-right-col">
+                                <div className="pillar-considerations">
+                                  <strong>As you think about this, consider:</strong>
+                                  <ul>
+                                    <li>Do we understand what support may be needed now vs. later?</li>
+                                    <li>Is the home safe and adaptable as needs change?</li>
+                                    <li>Are the right legal documents and decision-makers in place?</li>
+                                  </ul>
+                                </div>
+                                <div className="pillar-professionals">
+                                  <strong>Professionals who support this:</strong>
+                                  <div className="professionals-chips">
+                                    <span className="professional-chip">Aging Life Care Manager®</span>
+                                    <span className="professional-chip">Home Modification Specialist</span>
+                                    <span className="professional-chip">Estate Planning Attorney</span>
+                                    <span className="professional-chip">Professional Fiduciary & Trustee</span>
+                                    <span className="professional-chip">Corporate Trustee</span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className={`pillar-card ${expandedPillar === 'team' ? 'expanded' : ''} ${activeSection === 'pillar-team' ? 'active' : ''}`} id="section-pillar-team">
-                          <div className="pillar-card-header" onClick={() => setExpandedPillar(expandedPillar === 'team' ? null : 'team')}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
-                              <h3 className="pillar-card-title" style={{ fontSize: '15px', color: (activeSection === 'pillar-team' || expandedPillar === 'team') ? 'var(--primary-color)' : 'var(--text-dark)', marginBottom: '0' }}>2. Build Your Care Team</h3>
-                              <p className="pillar-card-desc" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.5', marginBottom: '0' }}>
-                                Aging at home often requires a mix of hands-on support, medical care, and professional coordination.
-                              </p>
-                            </div>
-                            <svg className="pillar-card-chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                          </div>
-                          <div className="pillar-card-details">
-                            <div className="pillar-why-box">
-                              <strong>Why this matters:</strong>
-                              <span>Care needs rarely stay the same. Having trusted providers in place reduces stress and allows you to respond quickly when things change.</span>
-                            </div>
-                            <div className="pillar-considerations">
-                              <strong>As you think about this, consider:</strong>
-                              <ul>
-                                <li>Who will help with daily needs at home?</li>
-                                <li>What medical or nursing care might be needed?</li>
-                                <li>Who will help coordinate care across providers?</li>
-                              </ul>
-                            </div>
-                            <div className="pillar-professionals">
-                              <strong>Professionals who support this:</strong>
-                              <div className="professionals-chips">
-                                <span className="professional-chip">Home Care Nursing (Agency-Based)</span>
-                                <span className="professional-chip">Home Care Provider (non-medical)</span>
-                                <span className="professional-chip">Transportation Services</span>
+                        {/* Step 2: Team */}
+                        <div className={`timeline-journey-step ${activeSection === 'pillar-team' ? 'active' : ''}`} id="section-pillar-team">
+                          <div className="timeline-milestone-dot">2</div>
+                          <div className="timeline-journey-card" onClick={() => scrollToSection('pillar-team')}>
+                            <h3 className="timeline-card-title">2. Build Your Care Team</h3>
+                            
+                            <div className="timeline-card-split-row">
+                              <div className="timeline-card-left-col">
+                                <p className="timeline-card-desc">
+                                  Aging at home often requires a mix of hands-on support, medical care, and professional coordination. Building your care team early helps avoid gaps and ensures you know who to call as needs evolve.
+                                </p>
+                                <div className="pillar-why-box">
+                                  <strong>Why this matters:</strong>
+                                  <span>Care needs rarely stay the same. Having trusted providers in place reduces stress and allows you to respond quickly when things change.</span>
+                                </div>
+                              </div>
+                              
+                              <div className="timeline-card-right-col">
+                                <div className="pillar-considerations">
+                                  <strong>As you think about this, consider:</strong>
+                                  <ul>
+                                    <li>Who will help with daily needs at home?</li>
+                                    <li>What medical or nursing care might be needed?</li>
+                                    <li>Who will help coordinate care across providers?</li>
+                                  </ul>
+                                </div>
+                                <div className="pillar-professionals">
+                                  <strong>Professionals who support this:</strong>
+                                  <div className="professionals-chips">
+                                    <span className="professional-chip">Home Care Nursing (Agency-Based)</span>
+                                    <span className="professional-chip">Home Care Provider (non-medical)</span>
+                                    <span className="professional-chip">Transportation Services</span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className={`pillar-card ${expandedPillar === 'benefits' ? 'expanded' : ''} ${activeSection === 'pillar-benefits' ? 'active' : ''}`} id="section-pillar-benefits">
-                          <div className="pillar-card-header" onClick={() => setExpandedPillar(expandedPillar === 'benefits' ? null : 'benefits')}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
-                              <h3 className="pillar-card-title" style={{ fontSize: '15px', color: (activeSection === 'pillar-benefits' || expandedPillar === 'benefits') ? 'var(--primary-color)' : 'var(--text-dark)', marginBottom: '0' }}>3. Coverage & Benefits</h3>
-                              <p className="pillar-card-desc" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.5', marginBottom: '0' }}>
-                                Understanding Medicare, insurance, and long-term care coverage helps you avoid costly surprises.
-                              </p>
-                            </div>
-                            <svg className="pillar-card-chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                          </div>
-                          <div className="pillar-card-details">
-                            <div className="pillar-why-box">
-                              <strong>Why this matters:</strong>
-                              <span>Many families assume more is covered than actually is. Clarity upfront helps you plan realistically and maximize available benefits.</span>
-                            </div>
-                            <div className="pillar-considerations">
-                              <strong>As you think about this, consider:</strong>
-                              <ul>
-                                <li>What does Medicare cover—and what doesn't it?</li>
-                                <li>Do you have long-term care insurance or other coverage?</li>
-                                <li>When should coverage decisions be made?</li>
-                              </ul>
-                            </div>
-                            <div className="pillar-professionals">
-                              <strong>Professionals who support this:</strong>
-                              <div className="professionals-chips">
-                                <span className="professional-chip">Independent Medicare Agent/Broker</span>
-                                <span className="professional-chip">Healthcare & LTC Navigator</span>
-                                <span className="professional-chip">Independent Insurance Broker</span>
-                                <span className="professional-chip">LTC Insurance Specialist</span>
+                        {/* Step 3: Benefits */}
+                        <div className={`timeline-journey-step ${activeSection === 'pillar-benefits' ? 'active' : ''}`} id="section-pillar-benefits">
+                          <div className="timeline-milestone-dot">3</div>
+                          <div className="timeline-journey-card" onClick={() => scrollToSection('pillar-benefits')}>
+                            <h3 className="timeline-card-title">3. Coverage & Benefits</h3>
+                            
+                            <div className="timeline-card-split-row">
+                              <div className="timeline-card-left-col">
+                                <p className="timeline-card-desc">
+                                  Care is only part of the equation—how you pay for it matters just as much. Understanding Medicare, insurance, and long-term care coverage helps you avoid costly surprises and make informed decisions about care.
+                                </p>
+                                <div className="pillar-why-box">
+                                  <strong>Why this matters:</strong>
+                                  <span>Many families assume more is covered than actually is. Clarity upfront helps you plan realistically and maximize available benefits.</span>
+                                </div>
+                              </div>
+                              
+                              <div className="timeline-card-right-col">
+                                <div className="pillar-considerations">
+                                  <strong>As you think about this, consider:</strong>
+                                  <ul>
+                                    <li>What does Medicare cover—and what doesn't it?</li>
+                                    <li>Do you have long-term care insurance or other coverage?</li>
+                                    <li>When should coverage decisions be made?</li>
+                                  </ul>
+                                </div>
+                                <div className="pillar-professionals">
+                                  <strong>Professionals who support this:</strong>
+                                  <div className="professionals-chips">
+                                    <span className="professional-chip">Independent Medicare Agent/Broker</span>
+                                    <span className="professional-chip">Healthcare & LTC Navigator</span>
+                                    <span className="professional-chip">Independent Insurance Broker</span>
+                                    <span className="professional-chip">LTC Insurance Specialist</span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className={`pillar-card ${expandedPillar === 'costs' ? 'expanded' : ''} ${activeSection === 'pillar-costs' ? 'active' : ''}`} id="section-pillar-costs">
-                          <div className="pillar-card-header" onClick={() => setExpandedPillar(expandedPillar === 'costs' ? null : 'costs')}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
-                              <h3 className="pillar-card-title" style={{ fontSize: '15px', color: (activeSection === 'pillar-costs' || expandedPillar === 'costs') ? 'var(--primary-color)' : 'var(--text-dark)', marginBottom: '0' }}>4. Costs & Financials</h3>
-                              <p className="pillar-card-desc" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.5', marginBottom: '0' }}>
-                                Care costs can increase over time. Staying organized financially helps you make confident decisions.
-                              </p>
-                            </div>
-                            <svg className="pillar-card-chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                          </div>
-                          <div className="pillar-card-details">
-                            <div className="pillar-why-box">
-                              <strong>Why this matters:</strong>
-                              <span>Without a clear financial picture, families often delay decisions or make reactive choices that impact long-term stability.</span>
-                            </div>
-                            <div className="pillar-considerations">
-                              <strong>As you think about this, consider:</strong>
-                              <ul>
-                                <li>What will care realistically cost over time?</li>
-                                <li>How will those costs be covered?</li>
-                                <li>Are finances, bills, and important documents organized?</li>
-                              </ul>
-                            </div>
-                            <div className="pillar-professionals">
-                              <strong>Professionals who support this:</strong>
-                              <div className="professionals-chips">
-                                <span className="professional-chip">Financial Advisor</span>
-                                <span className="professional-chip">Daily Money Manager</span>
-                                <span className="professional-chip">Legacy Planning Organizer</span>
-                                <span className="professional-chip">Funeral Pre-Needs Sales</span>
-                                <span className="professional-chip">Reverse Mortgage Specialist</span>
+                        {/* Step 4: Costs */}
+                        <div className={`timeline-journey-step ${activeSection === 'pillar-costs' ? 'active' : ''}`} id="section-pillar-costs">
+                          <div className="timeline-milestone-dot">4</div>
+                          <div className="timeline-journey-card" onClick={() => scrollToSection('pillar-costs')}>
+                            <h3 className="timeline-card-title">4. Costs & Financials</h3>
+                            
+                            <div className="timeline-card-split-row">
+                              <div className="timeline-card-left-col">
+                                <p className="timeline-card-desc">
+                                  Planning to stay at home also means planning how to sustain it financially. Care costs can increase over time, and staying organized financially and administratively helps you make confident, informed decisions.
+                                </p>
+                                <div className="pillar-why-box">
+                                  <strong>Why this matters:</strong>
+                                  <span>Without a clear financial picture, families often delay decisions or make reactive choices that impact long-term stability.</span>
+                                </div>
+                              </div>
+                              
+                              <div className="timeline-card-right-col">
+                                <div className="pillar-considerations">
+                                  <strong>As you think about this, consider:</strong>
+                                  <ul>
+                                    <li>What will care realistically cost over time?</li>
+                                    <li>How will those costs be covered?</li>
+                                    <li>Are finances, bills, and important documents organized?</li>
+                                  </ul>
+                                </div>
+                                <div className="pillar-professionals">
+                                  <strong>Professionals who support this:</strong>
+                                  <div className="professionals-chips">
+                                    <span className="professional-chip">Financial Advisor</span>
+                                    <span className="professional-chip">Daily Money Manager</span>
+                                    <span className="professional-chip">Legacy Planning Organizer</span>
+                                    <span className="professional-chip">Funeral Pre-Needs Sales</span>
+                                    <span className="professional-chip">Reverse Mortgage Specialist</span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
