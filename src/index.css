@@ -1936,6 +1936,18 @@ p, span, li, a, td, input, button, textarea, select {
   transition: height 0.08s ease-out; /* super smooth pixel-precision transition */
 }
 
+/* Dynamic scroll-filled timeline progress fill line for providers page */
+.providers-progress-fill-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0%; /* updated via JS scrollspy calculation */
+  background: linear-gradient(180deg, #6ab0a7 0%, var(--primary-color) 100%);
+  box-shadow: 0 0 8px rgba(61, 120, 114, 0.4);
+  transition: height 0.08s ease-out; /* super smooth pixel-precision transition */
+}
+
 /* Individual Step Node Layout */
 .timeline-journey-step {
   position: relative;
@@ -2157,4 +2169,346 @@ p, span, li, a, td, input, button, textarea, select {
     padding-top: 16px;
   }
 }
+
+/* Step 3: Provider Types Styling */
+.providers-page-wrapper {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 0 60px;
+}
+
+.providers-page-header {
+  text-align: center;
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.providers-main-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 12px;
+}
+
+.providers-main-subtitle {
+  font-size: 14.5px;
+  color: var(--text-gray);
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto 20px;
+}
+
+.download-guide-btn {
+  background-color: var(--white);
+  border: 1.5px solid var(--primary-color);
+  color: var(--primary-color);
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(61, 120, 114, 0.04);
+}
+
+.download-guide-btn:hover {
+  background-color: #f4faf9;
+  box-shadow: 0 4px 10px rgba(61, 120, 114, 0.08);
+}
+
+.download-icon {
+  stroke-width: 2.5;
+}
+
+/* List of Provider Cards */
+.provider-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 36px;
+}
+
+.provider-card {
+  display: flex;
+  background-color: var(--white);
+  border-radius: 12px;
+  border: 1px solid #eef3f2;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.01);
+  padding: 24px;
+  gap: 24px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.provider-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.03);
+  border-color: rgba(61, 120, 114, 0.2);
+}
+
+/* Icon Badges */
+.provider-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--white);
+}
+
+.provider-icon-badge.color-1 {
+  background-color: #3b6b63; /* Support Group Facilitator Deep Teal */
+}
+
+.provider-icon-badge.color-2 {
+  background-color: #2b5c54; /* Home Health Care Deep Forest */
+}
+
+.provider-icon-badge.color-3 {
+  background-color: #3a6860; /* Geriatric Care Case Manager Sage */
+}
+
+.provider-icon-badge.color-4 {
+  background-color: #244f47; /* Memory Care Specialist Deep Emerald */
+}
+
+.provider-info-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.provider-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+.provider-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.provider-section-label {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.8px;
+  color: #8fa3a0;
+  margin: 0;
+}
+
+.provider-section-content {
+  font-size: 13.5px;
+  color: var(--text-gray);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Bottom Matching Panel */
+.providers-matching-cta-panel {
+  background-color: #eef5f4;
+  border: 1px solid #c2d6d4;
+  border-radius: 14px;
+  padding: 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 4px 12px rgba(61, 120, 114, 0.03);
+}
+
+.matching-cta-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+.matching-cta-desc {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-gray);
+  max-width: 580px;
+  margin: 0;
+}
+
+.matching-cta-meta-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 4px;
+}
+
+.dot-divider {
+  user-select: none;
+  font-weight: bold;
+}
+
+.matching-start-btn {
+  background-color: var(--primary-color);
+  color: var(--white);
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 8px rgba(61, 120, 114, 0.2);
+}
+
+.matching-start-btn:hover {
+  background-color: #2b5651;
+  box-shadow: 0 4px 14px rgba(61, 120, 114, 0.35);
+  transform: translateY(-1px);
+}
+
+.arrow-icon {
+  stroke-width: 2.5;
+  transition: transform 0.2s ease;
+}
+
+.matching-start-btn:hover .arrow-icon {
+  transform: translateX(3px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .provider-card {
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+  }
+  
+  .provider-icon-badge {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+/* Premium Provider Card Layout */
+.provider-premium-row {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.provider-profile-aside {
+  width: 200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  border-right: 1.5px dashed #edf2f1;
+  padding-right: 20px;
+}
+
+.provider-premium-title {
+  font-size: 15px;
+  font-weight: 700 !important;
+  color: var(--text-dark);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.timeline-journey-step.active .provider-premium-title {
+  color: var(--primary-color);
+}
+
+.provider-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(61, 120, 114, 0.15);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.provider-content-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.premium-block-what {
+  background-color: #fafaf9;
+  border: 1px solid #f2f2f0;
+  border-radius: 10px;
+  padding: 14px 18px;
+  transition: var(--transition);
+}
+
+.timeline-journey-step.active .premium-block-what {
+  background-color: #f7f9f9;
+  border-color: #eaf0ef;
+}
+
+.premium-block-why {
+  background-color: #f5f9f8;
+  border: 1px solid #e1edea;
+  border-radius: 10px;
+  padding: 14px 18px;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.premium-block-why::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: var(--primary-color);
+  opacity: 0.6;
+}
+
+.timeline-journey-step.active .premium-block-why {
+  background-color: #f0f7f5;
+  border-color: #cde3de;
+}
+
+.timeline-journey-step.active .premium-block-why::before {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .provider-premium-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .provider-profile-aside {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1.5px dashed #edf2f1;
+    padding-right: 0;
+    padding-bottom: 16px;
+    align-items: center;
+    text-align: center;
+  }
+}
+
 

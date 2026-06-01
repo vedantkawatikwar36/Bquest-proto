@@ -165,21 +165,14 @@ function App() {
   };
 
   const handleCompleteJourney = () => {
-    const newPlan = {
-      id: carePlans.length + 1,
-      name: chatTimeline === 'Crisis / Urgent' ? 'Urgent Response Care Plan' : 'Home Transition Care Plan',
-      client: chatRelation === 'For Myself' ? 'for Myself' : 'for Mom (Eleanor)',
-      description: chatSituation || "Comprehensive plan focusing on custom care directive structures, provider coordination and support services.",
-      progress: 25,
-      status: 'in-progress',
-      createdAt: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-    };
-
-    setCarePlans([newPlan, ...carePlans]);
-    setActiveTab('DASHBOARD');
+    setNavigatorScreen('PROVIDERS');
+    const container = document.querySelector('.workspace-content');
+    if (container) {
+      container.scrollTop = 0;
+    }
+    window.scrollTo(0, 0);
     
     // Reset chatbot navigator states
-    setNavigatorScreen('STORY');
     setChatStep(1);
     setChatMessages([
       {
@@ -226,11 +219,79 @@ function App() {
 
   const [activeSection, setActiveSection] = useState('journey');
   const [activePillarTab, setActivePillarTab] = useState('plan');
+  const [activeProviderSection, setActiveProviderSection] = useState('prov-group');
 
   React.useEffect(() => {
-    if (activeTab !== 'NAVIGATOR' || navigatorScreen !== 'JOURNEY') return;
+    if (activeTab !== 'NAVIGATOR' || (navigatorScreen !== 'JOURNEY' && navigatorScreen !== 'PROVIDERS')) return;
 
     const handleScroll = () => {
+      const containerEl = document.querySelector('.workspace-content');
+      if (!containerEl) return;
+      const isDesktop = window.innerWidth > 768;
+
+      const getStaticOffsetTop = (el) => {
+        if (!el) return 0;
+        let top = 0;
+        let current = el;
+        while (current && current !== containerEl && current !== document.body) {
+          top += current.offsetTop;
+          current = current.offsetParent;
+        }
+        return top;
+      };
+
+      const getAbsoluteOffsetTop = (el) => el ? el.getBoundingClientRect().top + window.scrollY : 0;
+
+      let scrollPos = isDesktop 
+        ? containerEl.scrollTop + (containerEl.clientHeight / 2)
+        : window.scrollY + (window.innerHeight / 2);
+
+      // PROVIDERS (Step 3: Provider Types) Scrollspy
+      if (navigatorScreen === 'PROVIDERS') {
+        const provGroupEl = document.getElementById('section-prov-group');
+        const provHomeEl = document.getElementById('section-prov-home');
+        const provGeriatricEl = document.getElementById('section-prov-geriatric');
+        const provMemoryEl = document.getElementById('section-prov-memory');
+        const provNextEl = document.getElementById('section-prov-next');
+
+        if (!provGroupEl || !provHomeEl || !provGeriatricEl || !provMemoryEl) return;
+
+        const groupTop = getStaticOffsetTop(provGroupEl);
+        const homeTop = getStaticOffsetTop(provHomeEl);
+        const geriatricTop = getStaticOffsetTop(provGeriatricEl);
+        const memoryTop = getStaticOffsetTop(provMemoryEl);
+        const nextTop = provNextEl ? getStaticOffsetTop(provNextEl) : 99999;
+
+        if (scrollPos >= nextTop) {
+          setActiveProviderSection('prov-next');
+        } else if (scrollPos >= memoryTop) {
+          setActiveProviderSection('prov-memory');
+        } else if (scrollPos >= geriatricTop) {
+          setActiveProviderSection('prov-geriatric');
+        } else if (scrollPos >= homeTop) {
+          setActiveProviderSection('prov-home');
+        } else {
+          setActiveProviderSection('prov-group');
+        }
+
+        // Animate the vertical timeline connector progress fill line for the provider page
+        const fillLine = document.querySelector('.providers-progress-fill-line');
+        if (isDesktop && fillLine) {
+          const startOffset = groupTop - (containerEl.clientHeight / 2);
+          const endOffset = memoryTop - (containerEl.clientHeight / 2);
+          const currentScroll = containerEl.scrollTop;
+          
+          let progressPercent = 0;
+          if (currentScroll >= startOffset) {
+            progressPercent = ((currentScroll - startOffset) / (endOffset - startOffset)) * 100;
+            progressPercent = Math.max(0, Math.min(100, progressPercent));
+          }
+          fillLine.style.height = `${progressPercent}%`;
+        }
+        return;
+      }
+
+      // JOURNEY (Step 2: Educational Timeline) Scrollspy
       const journeyEl = document.getElementById('section-journey');
       const sharedEl = document.getElementById('section-shared');
       const stageEl = document.getElementById('section-stage');
@@ -243,27 +304,9 @@ function App() {
 
       if (!sharedEl || !stageEl || !nextEl) return;
 
-      const containerEl = document.querySelector('.workspace-content');
-      const isDesktop = window.innerWidth > 768;
-
-      let scrollPos;
       let nextTop, pCostsTop, pBenefitsTop, pTeamTop, pPlanTop, stageTop, sharedTop;
 
-      const getStaticOffsetTop = (el) => {
-        if (!el) return 0;
-        let top = 0;
-        let current = el;
-        const parent = document.querySelector('.workspace-content');
-        while (current && current !== parent && current !== document.body) {
-          top += current.offsetTop;
-          current = current.offsetParent;
-        }
-        return top;
-      };
-
-      if (isDesktop && containerEl) {
-        // Use container scroll center point
-        scrollPos = containerEl.scrollTop + (containerEl.clientHeight / 2); 
+      if (isDesktop) {
         nextTop = getStaticOffsetTop(nextEl);
         pCostsTop = getStaticOffsetTop(pCostsEl);
         pBenefitsTop = getStaticOffsetTop(pBenefitsEl);
@@ -272,9 +315,6 @@ function App() {
         stageTop = getStaticOffsetTop(stageEl);
         sharedTop = getStaticOffsetTop(sharedEl);
       } else {
-        // Use window center point for mobile
-        scrollPos = window.scrollY + (window.innerHeight / 2); 
-        const getAbsoluteOffsetTop = (el) => el ? el.getBoundingClientRect().top + window.scrollY : 0;
         nextTop = getAbsoluteOffsetTop(nextEl);
         pCostsTop = getAbsoluteOffsetTop(pCostsEl);
         pBenefitsTop = getAbsoluteOffsetTop(pBenefitsEl);
@@ -304,9 +344,9 @@ function App() {
 
       // Animate vertical timeline filling connector line dynamically
       const fillLine = document.querySelector('.timeline-progress-fill-line');
-      if (isDesktop && containerEl && fillLine && pPlanEl && pCostsEl) {
-        const startOffset = getRelativeOffsetTop(pPlanEl, containerEl) - 140;
-        const endOffset = getRelativeOffsetTop(pCostsEl, containerEl) - 140;
+      if (isDesktop && fillLine && pPlanEl && pCostsEl) {
+        const startOffset = getStaticOffsetTop(pPlanEl) - (containerEl.clientHeight / 2);
+        const endOffset = getStaticOffsetTop(pCostsEl) - (containerEl.clientHeight / 2);
         const currentScroll = containerEl.scrollTop;
         
         let progressPercent = 0;
@@ -450,7 +490,7 @@ function App() {
               className="step-line completed" 
               style={{ 
                 left: '10%', 
-                width: navigatorScreen === 'JOURNEY' ? '20%' : '0%',
+                width: navigatorScreen === 'PROVIDERS' ? '45%' : navigatorScreen === 'JOURNEY' ? '20%' : '0%',
                 transition: 'width 0.8s ease'
               }}
             ></div>
@@ -465,7 +505,14 @@ function App() {
               let isActive = false;
               let isCompleted = false;
 
-              if (navigatorScreen === 'JOURNEY') {
+              if (navigatorScreen === 'PROVIDERS') {
+                if (step.num < 3) {
+                  isCompleted = true;
+                  isActive = true;
+                } else if (step.num === 3) {
+                  isActive = true;
+                }
+              } else if (navigatorScreen === 'JOURNEY') {
                 if (step.num === 1) {
                   isCompleted = true;
                   isActive = true;
@@ -725,7 +772,7 @@ function App() {
                 </form>
               </div>
             </section>
-          ) : (
+          ) : navigatorScreen === 'JOURNEY' ? (
             /* Redesigned Your Journey Screen */
             <div style={{ width: '100%' }}>
 
@@ -1122,8 +1169,254 @@ function App() {
                   </div>
                 </div>
               </div>
+            </div>
+          ) : ( // PROVIDERS (Step 3: Provider Types)
+            <div style={{ width: '100%' }}>
+              {/* Unified Planner Card stretched to full parent width */}
+              <div className="planner-workspace-card">
+                {/* Left Column: Planning Sections list */}
+                <div className="workspace-sidebar">
+                  <span className="scrollspy-title" style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px', display: 'block', textTransform: 'none', letterSpacing: 'normal' }}>Provider Types</span>
+                  <ul className="scrollspy-list" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px', listStyle: 'none', padding: '0' }}>
+                    <li>
+                      <button 
+                        className={`scrollspy-item ${activeProviderSection === 'prov-group' ? 'active' : ''}`}
+                        onClick={() => scrollToSection('prov-group')}
+                      >
+                        <span className="scrollspy-dot"></span>
+                        Support Group Facilitator
+                      </button>
+                    </li>
+                    <li>
+                      <button 
+                        className={`scrollspy-item ${activeProviderSection === 'prov-home' ? 'active' : ''}`}
+                        onClick={() => scrollToSection('prov-home')}
+                      >
+                        <span className="scrollspy-dot"></span>
+                        Home Health Care
+                      </button>
+                    </li>
+                    <li>
+                      <button 
+                        className={`scrollspy-item ${activeProviderSection === 'prov-geriatric' ? 'active' : ''}`}
+                        onClick={() => scrollToSection('prov-geriatric')}
+                      >
+                        <span className="scrollspy-dot"></span>
+                        Geriatric Care Manager
+                      </button>
+                    </li>
+                    <li>
+                      <button 
+                        className={`scrollspy-item ${activeProviderSection === 'prov-memory' ? 'active' : ''}`}
+                        onClick={() => scrollToSection('prov-memory')}
+                      >
+                        <span className="scrollspy-dot"></span>
+                        Memory Care Specialist
+                      </button>
+                    </li>
+                  </ul>
+                  
+                  <button 
+                    className={`sidebar-meet-btn ${activeProviderSection === 'prov-next' ? 'filled' : 'outline'}`}
+                    onClick={() => scrollToSection('prov-next')}
+                  >
+                    Start Matching
+                  </button>
+                </div>
+
+                {/* Middle Column: Content area (stretched beautifully across the rest of the workspace card) */}
+                <div className="workspace-content">
+                  {/* Header Summary (Unified Style) */}
+                  <div id="section-prov-header" style={{ paddingBottom: '32px', borderBottom: '1px solid #edf2f1' }}>
+                    <span style={{ fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--primary-color)', letterSpacing: '1px' }}>Step 3 of 4: Your Care Team Overview</span>
+                    <h1 className="providers-main-title" style={{ fontSize: '20px', textAlign: 'left', marginTop: '6px', marginBottom: '8px', fontWeight: '600' }}>Your Care Team Overview</h1>
+                    <p className="providers-main-subtitle" style={{ textAlign: 'left', margin: '0 0 16px 0', fontSize: '13.5px', color: 'var(--text-gray)', maxWidth: '100%', lineHeight: '1.6' }}>
+                      Based on your situation, you'll need to work with several types of service providers. Here's what each one does and why they're important.
+                    </p>
+                    <button className="download-guide-btn" style={{ cursor: 'pointer' }}>
+                      <svg className="download-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                      </svg>
+                      Download Provider Guide
+                    </button>
+                  </div>
+
+                  {/* Timeline Journey Step Cards Container */}
+                  <div className="timeline-journey-container" style={{ position: 'relative', paddingLeft: '36px', marginTop: '24px' }}>
+                    {/* Interactive vertical glowing connector line */}
+                    <div className="timeline-track-line">
+                      <div className="providers-progress-fill-line"></div>
+                    </div>
+
+                    {/* Card 1: Support Group Facilitator */}
+                    <div className={`timeline-journey-step ${activeProviderSection === 'prov-group' ? 'active' : ''}`} id="section-prov-group">
+                      <div className="timeline-milestone-dot">1</div>
+                      <div className="timeline-journey-card" onClick={() => scrollToSection('prov-group')}>
+                        <div className="provider-premium-row">
+                          {/* Left Profile Aside */}
+                          <div className="provider-profile-aside">
+                            <div className="provider-icon-badge color-1">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                              </svg>
+                            </div>
+                            <h3 className="provider-premium-title">Support Group Facilitator</h3>
+                            <span className="provider-tag-pill">Caregiver Support</span>
+                          </div>
+
+                          {/* Right Content Area */}
+                          <div className="provider-content-main">
+                            <div className="premium-block-what">
+                              <h4 className="provider-section-label" style={{ fontSize: '10px', fontWeight: '750', letterSpacing: '0.8px', color: '#8fa3a0', margin: '0 0 4px 0' }}>WHAT THEY DO</h4>
+                              <p className="provider-section-content" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.55', margin: '0' }}>
+                                Organizations and professionals who facilitate peer support groups for family caregivers. These groups provide education, emotional support, and community connection with others on similar journeys.
+                              </p>
+                            </div>
+                            <div className="premium-block-why">
+                              <h4 className="provider-section-label" style={{ fontSize: '10px', fontWeight: '750', letterSpacing: '0.8px', color: '#8fa3a0', margin: '0 0 4px 0' }}>WHY YOU NEED THEM</h4>
+                              <p className="provider-section-content" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.55', margin: '0' }}>
+                                Caregiving can be emotionally overwhelming. Support groups help prevent burnout, provide practical coping strategies, and remind you that you're not alone. Research shows caregivers who participate in support groups experience less stress and better health outcomes.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 2: Home Health Care Provider */}
+                    <div className={`timeline-journey-step ${activeProviderSection === 'prov-home' ? 'active' : ''}`} id="section-prov-home">
+                      <div className="timeline-milestone-dot">2</div>
+                      <div className="timeline-journey-card" onClick={() => scrollToSection('prov-home')}>
+                        <div className="provider-premium-row">
+                          {/* Left Profile Aside */}
+                          <div className="provider-profile-aside">
+                            <div className="provider-icon-badge color-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                              </svg>
+                            </div>
+                            <h3 className="provider-premium-title">Home Health Care Provider</h3>
+                            <span className="provider-tag-pill">In-Home Safety</span>
+                          </div>
+
+                          {/* Right Content Area */}
+                          <div className="provider-content-main">
+                            <div className="premium-block-what">
+                              <h4 className="provider-section-label" style={{ fontSize: '10px', fontWeight: '750', letterSpacing: '0.8px', color: '#8fa3a0', margin: '0 0 4px 0' }}>WHAT THEY DO</h4>
+                              <p className="provider-section-content" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.55', margin: '0' }}>
+                                Trained caregivers who provide in-home support with daily activities like bathing, dressing, meal preparation, and medication management. They help maintain safety and independence at home.
+                              </p>
+                            </div>
+                            <div className="premium-block-why">
+                              <h4 className="provider-section-label" style={{ fontSize: '10px', fontWeight: '750', letterSpacing: '0.8px', color: '#8fa3a0', margin: '0 0 4px 0' }}>WHY YOU NEED THEM</h4>
+                              <p className="provider-section-content" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.55', margin: '0' }}>
+                                Critical for day-to-day wellbeing and safety. As memory loss progresses, having consistent, trained support helps prevent accidents, ensures proper nutrition and hygiene, and allows your loved one to remain in familiar surroundings.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 3: Geriatric Care Manager */}
+                    <div className={`timeline-journey-step ${activeProviderSection === 'prov-geriatric' ? 'active' : ''}`} id="section-prov-geriatric">
+                      <div className="timeline-milestone-dot">3</div>
+                      <div className="timeline-journey-card" onClick={() => scrollToSection('prov-geriatric')}>
+                        <div className="provider-premium-row">
+                          {/* Left Profile Aside */}
+                          <div className="provider-profile-aside">
+                            <div className="provider-icon-badge color-3">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                              </svg>
+                            </div>
+                            <h3 className="provider-premium-title">Geriatric Care Manager</h3>
+                            <span className="provider-tag-pill">Care Coordination</span>
+                          </div>
+
+                          {/* Right Content Area */}
+                          <div className="provider-content-main">
+                            <div className="premium-block-what">
+                              <h4 className="provider-section-label" style={{ fontSize: '10px', fontWeight: '750', letterSpacing: '0.8px', color: '#8fa3a0', margin: '0 0 4px 0' }}>WHAT THEY DO</h4>
+                              <p className="provider-section-content" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.55', margin: '0' }}>
+                                Professional care coordinators, often nurses or social workers, who oversee all aspects of care. They act as a single point of contact, coordinating between doctors, caregivers, and family members.
+                              </p>
+                            </div>
+                            <div className="premium-block-why">
+                              <h4 className="provider-section-label" style={{ fontSize: '10px', fontWeight: '750', letterSpacing: '0.8px', color: '#8fa3a0', margin: '0 0 4px 0' }}>WHY YOU NEED THEM</h4>
+                              <p className="provider-section-content" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.55', margin: '0' }}>
+                                Your advocate and guide through a complex healthcare system. They help navigate insurance, coordinate appointments, manage transitions between care settings, and ensure all providers are working together effectively. Invaluable if you live far from your loved one or have a demanding schedule.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 4: Memory Care Specialist */}
+                    <div className={`timeline-journey-step ${activeProviderSection === 'prov-memory' ? 'active' : ''}`} id="section-prov-memory">
+                      <div className="timeline-milestone-dot">4</div>
+                      <div className="timeline-journey-card" onClick={() => scrollToSection('prov-memory')}>
+                        <div className="provider-premium-row">
+                          {/* Left Profile Aside */}
+                          <div className="provider-profile-aside">
+                            <div className="provider-icon-badge color-4">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                              </svg>
+                            </div>
+                            <h3 className="provider-premium-title">Memory Care Specialist</h3>
+                            <span className="provider-tag-pill">Cognitive Health</span>
+                          </div>
+
+                          {/* Right Content Area */}
+                          <div className="provider-content-main">
+                            <div className="premium-block-what">
+                              <h4 className="provider-section-label" style={{ fontSize: '10px', fontWeight: '750', letterSpacing: '0.8px', color: '#8fa3a0', margin: '0 0 4px 0' }}>WHAT THEY DO</h4>
+                              <p className="provider-section-content" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.55', margin: '0' }}>
+                                Medical professionals who specialize in cognitive health, Alzheimer's disease, and dementia care. They provide diagnosis, treatment planning, and ongoing management of memory-related conditions.
+                              </p>
+                            </div>
+                            <div className="premium-block-why">
+                              <h4 className="provider-section-label" style={{ fontSize: '10px', fontWeight: '750', letterSpacing: '0.8px', color: '#8fa3a0', margin: '0 0 4px 0' }}>WHY YOU NEED THEM</h4>
+                              <p className="provider-section-content" style={{ fontSize: '13px', color: 'var(--text-gray)', lineHeight: '1.55', margin: '0' }}>
+                                Essential for understanding your loved one's cognitive health, getting an accurate diagnosis, and creating a medical treatment plan. They can recommend interventions and medications that may slow progression and improve quality of life.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Matching CTA Panel */}
+                  <div id="section-prov-next" className="providers-matching-cta-panel" style={{ marginTop: '24px' }}>
+                    <h2 className="matching-cta-title">Ready to Find Your Providers?</h2>
+                    <p className="matching-cta-desc">
+                      Now that you understand each role, we'll help you find the right professionals for your specific situation. We'll go through each provider type one at a time.
+                    </p>
+                    <div className="matching-cta-meta-strip">
+                      <span>4 provider types</span>
+                      <span className="dot-divider">•</span>
+                      <span>~5 minutes</span>
+                      <span className="dot-divider">•</span>
+                      <span>Personalized recommendations</span>
+                    </div>
+                    <button className="matching-start-btn" onClick={() => { setActiveTab('DASHBOARD'); setNavigatorScreen('STORY'); }} style={{ cursor: 'pointer' }}>
+                      Start Matching Providers
+                    </button>
+                  </div>
+                </div>
               </div>
-        )
+            </div>
+          )
         ) : (
           <div style={{
             background: '#ffffff',
