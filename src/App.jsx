@@ -220,6 +220,16 @@ function App() {
   const [activeSection, setActiveSection] = useState('journey');
   const [activePillarTab, setActivePillarTab] = useState('plan');
   const [activeProviderSection, setActiveProviderSection] = useState('prov-group');
+  const [matchingActiveTab, setMatchingActiveTab] = useState('memory');
+  const [selectedProviders, setSelectedProviders] = useState({});
+  const [expandedProviders, setExpandedProviders] = useState({});
+
+  const handleSelectProvider = (category, providerName) => {
+    setSelectedProviders(prev => ({
+      ...prev,
+      [category]: providerName
+    }));
+  };
 
   React.useEffect(() => {
     if (activeTab !== 'NAVIGATOR' || (navigatorScreen !== 'JOURNEY' && navigatorScreen !== 'PROVIDERS')) return;
@@ -490,7 +500,7 @@ function App() {
               className="step-line completed" 
               style={{ 
                 left: '10%', 
-                width: navigatorScreen === 'PROVIDERS' ? '45%' : navigatorScreen === 'JOURNEY' ? '20%' : '0%',
+                width: navigatorScreen === 'PLAN' ? '70%' : navigatorScreen === 'MATCHING' ? '58%' : navigatorScreen === 'PROVIDERS' ? '45%' : navigatorScreen === 'JOURNEY' ? '20%' : '0%',
                 transition: 'width 0.8s ease'
               }}
             ></div>
@@ -504,8 +514,22 @@ function App() {
             ].map((step) => {
               let isActive = false;
               let isCompleted = false;
-
-              if (navigatorScreen === 'PROVIDERS') {
+              
+              if (navigatorScreen === 'PLAN') {
+                if (step.num < 5) {
+                  isCompleted = true;
+                  isActive = true;
+                } else if (step.num === 5) {
+                  isActive = true;
+                }
+              } else if (navigatorScreen === 'MATCHING') {
+                if (step.num < 4) {
+                  isCompleted = true;
+                  isActive = true;
+                } else if (step.num === 4) {
+                  isActive = true;
+                }
+              } else if (navigatorScreen === 'PROVIDERS') {
                 if (step.num < 3) {
                   isCompleted = true;
                   isActive = true;
@@ -525,7 +549,7 @@ function App() {
                 }
               }
 
-              const currentStepNum = navigatorScreen === 'PROVIDERS' ? 3 : navigatorScreen === 'JOURNEY' ? 2 : 1;
+              const currentStepNum = navigatorScreen === 'PLAN' ? 5 : navigatorScreen === 'MATCHING' ? 4 : navigatorScreen === 'PROVIDERS' ? 3 : navigatorScreen === 'JOURNEY' ? 2 : 1;
               const isClickable = step.num < currentStepNum;
 
               return (
@@ -536,6 +560,8 @@ function App() {
                     if (step.num === 1) setNavigatorScreen('STORY');
                     else if (step.num === 2) setNavigatorScreen('JOURNEY');
                     else if (step.num === 3) setNavigatorScreen('PROVIDERS');
+                    else if (step.num === 4) setNavigatorScreen('MATCHING');
+                    else if (step.num === 5) setNavigatorScreen('PLAN');
                   } : undefined}
                   style={{ cursor: isClickable ? 'pointer' : 'default' }}
                 >
@@ -1182,7 +1208,7 @@ function App() {
                 </div>
               </div>
             </div>
-          ) : ( // PROVIDERS (Step 3: Provider Types)
+          ) : navigatorScreen === 'PROVIDERS' ? ( // PROVIDERS (Step 3: Provider Types)
             <div style={{ width: '100%' }}>
               {/* Unified Planner Card stretched to full parent width */}
               <div className="planner-workspace-card">
@@ -1421,12 +1447,1012 @@ function App() {
                       <span className="dot-divider">•</span>
                       <span>Personalized recommendations</span>
                     </div>
-                    <button className="matching-start-btn" onClick={() => { setActiveTab('DASHBOARD'); setNavigatorScreen('STORY'); }} style={{ cursor: 'pointer' }}>
+                    <button className="matching-start-btn" onClick={() => setNavigatorScreen('MATCHING')} style={{ cursor: 'pointer' }}>
                       Start Matching Providers
                     </button>
                   </div>
                 </div>
               </div>
+            </div>
+          ) : navigatorScreen === 'MATCHING' ? (
+            /* STEP 4: FIND PROVIDERS (MATCHING PROCESS) SCREEN */
+            (() => {
+              const providerData = {
+                memory: {
+                  num: 1,
+                  pct: '25%',
+                  label: 'Provider Type 1 of 4',
+                  title: 'Memory Care Specialist',
+                  desc: 'Essential for navigating Alzheimer\'s care. They provide expertise in cognitive health management and family support strategies.',
+                  what: 'Memory Care Specialists are medical professionals who diagnose and manage cognitive conditions like Alzheimer\'s and dementia. They create treatment plans, recommend medications, and monitor disease progression while supporting both patients and families through the journey.',
+                  recommendations: [
+                    {
+                      id: 'chen',
+                      name: 'Dr. Patricia Chen',
+                      role: 'Geriatric Neuropsychologist',
+                      location: 'Denver, CO',
+                      rating: '4.9',
+                      availability: 'Accepting new patients',
+                      availType: 'success',
+                      desc: 'Specializing in Alzheimer\'s and dementia care with over 15 years of experience. Known for compassionate, family-centered approach to memory care planning.',
+                      initials: 'DPC',
+                      phone: '(303) 555-0142',
+                      email: 'pchen@denvermemoryplanning.com',
+                      exp: '15+ years in neuropsychology',
+                      credentials: [
+                        'PhD - Stanford University',
+                        'Fellowship in Clinical Neuropsychology',
+                        'Member, American Board of Professional Psychology'
+                      ],
+                      focus: ['Dementia Assessment', 'Family Support', 'Behavioral Strategies', 'Cognitive Health']
+                    },
+                    {
+                      id: 'torres',
+                      name: 'Dr. Michael Torres',
+                      role: 'Memory Care Physician',
+                      location: 'Aurora, CO',
+                      rating: '4.8',
+                      availability: 'Limited availability - 2 month wait',
+                      availType: 'warning',
+                      desc: 'Board-certified in geriatric medicine with a focus on early intervention and quality of life for memory care patients and their families.',
+                      initials: 'DMT',
+                      phone: '(303) 555-0198',
+                      email: 'mtorres@auroramemorycare.org',
+                      exp: '12+ years in geriatric medicine',
+                      credentials: [
+                        'MD - Johns Hopkins University',
+                        'Board Certified in Geriatric Medicine',
+                        'Fellowship in Memory Disorders'
+                      ],
+                      focus: ['Early-Onset Dementia', 'Medication Management', 'Behavioral Symptoms', 'Care Planning']
+                    }
+                  ]
+                },
+                home: {
+                  num: 2,
+                  pct: '50%',
+                  label: 'Provider Type 2 of 4',
+                  title: 'Home Health Care Provider',
+                  desc: 'Provides daily living support and ensures safety at home. Critical for maintaining independence and quality of life.',
+                  what: 'Home Health Care Providers offer trained caregivers who assist with daily activities in your loved one\'s home. This includes personal care (bathing, dressing), meal preparation, medication reminders, light housekeeping, and companionship. They help maintain safety, dignity, and independence.',
+                  recommendations: [
+                    {
+                      id: 'comfortcare',
+                      name: 'ComfortCare Home Services',
+                      role: 'In-Home Personal Care',
+                      location: 'Denver Metro Area',
+                      rating: '4.7',
+                      availability: 'Immediate availability',
+                      availType: 'success',
+                      desc: 'Comprehensive home care services including personal care, medication management, and mobility assistance. Available 24/7 with highly trained caregivers.',
+                      initials: 'CHS',
+                      phone: '(303) 555-0211',
+                      email: 'care@comfortcaredenver.com',
+                      exp: 'Available 24/7 with highly trained caregivers',
+                      credentials: [
+                        'Licensed Home Services Agency',
+                        'Fully Insured & Bonded Staff',
+                        'Dementia Care Training Certified'
+                      ],
+                      focus: ['ADL Support', 'Meal Prep', 'Medication Reminders', 'Companionship']
+                    },
+                    {
+                      id: 'helpinghands',
+                      name: 'Helping Hands Healthcare',
+                      role: 'Senior Home Care',
+                      location: 'Jefferson County',
+                      rating: '4.9',
+                      availability: 'Accepting new clients',
+                      availType: 'success',
+                      desc: 'Family-owned agency providing personalized care plans. Specializes in Alzheimer\'s and dementia care with compassionate caregivers.',
+                      initials: 'HHH',
+                      phone: '(303) 555-0284',
+                      email: 'info@helpinghandsdenver.com',
+                      exp: '10+ years in senior home care',
+                      credentials: [
+                        'State Certified Home Care Provider',
+                        'Dementia Care Certified',
+                        'Background Checked Staff'
+                      ],
+                      focus: ['Dementia Support', 'Personal Care', 'Companion Care', 'Respite Care']
+                    }
+                  ]
+                },
+                geriatric: {
+                  num: 3,
+                  pct: '75%',
+                  label: 'Provider Type 3 of 4',
+                  title: 'Geriatric Care Manager',
+                  desc: 'Coordinates all aspects of care and helps navigate the healthcare system. Your advocate and guide through the care journey.',
+                  what: 'Geriatric Care Managers (often nurses or social workers) coordinate all aspects of your loved one\'s care. They act as a single point of contact, schedule appointments, communicate with all providers, handle insurance and billing questions, and help navigate transitions between care settings.',
+                  recommendations: [
+                    {
+                      id: 'sarah_williams',
+                      name: 'Sarah Williams, RN, CMC',
+                      role: 'Certified Care Manager',
+                      location: 'Denver, CO',
+                      rating: '5',
+                      availability: 'Taking select new clients',
+                      availType: 'success',
+                      desc: 'Registered nurse and certified care manager with expertise in complex care coordination. Helps families navigate medical, financial, and legal aspects of caregiving.',
+                      initials: 'SWRC',
+                      phone: '(303) 555-0320',
+                      email: 'sarah@williamsgeriatric.com',
+                      exp: '12+ years care management',
+                      credentials: [
+                        'Registered Nurse (RN) licensure',
+                        'Certified Care Manager (CMC)',
+                        'MSW - University of Denver'
+                      ],
+                      focus: ['Crisis Intervention', 'Care Coordination', 'Family Counseling', 'Benefits Navigation']
+                    },
+                    {
+                      id: 'david',
+                      name: 'David Vance, RN',
+                      role: 'Geriatric Care Case Manager',
+                      location: 'Boulder, CO',
+                      rating: '4.8',
+                      availability: '1-week wait list',
+                      availType: 'warning',
+                      desc: 'Specialized registered nurse providing comprehensive cognitive assessments and medication oversight.',
+                      initials: 'DVR',
+                      phone: '(303) 555-0391',
+                      email: 'david@vancegeriatric.com',
+                      exp: '14+ years in geriatric nursing',
+                      credentials: [
+                        'BSN - University of Colorado',
+                        'Registered Nurse (RN) licensure',
+                        'Board Certified Case Manager'
+                      ],
+                      focus: ['Health Assessments', 'Medication Management', 'Provider Liaison', 'Discharge Planning']
+                    }
+                  ]
+                },
+                group: {
+                  num: 4,
+                  pct: '100%',
+                  label: 'Provider Type 4 of 4',
+                  title: 'Support Group Facilitator',
+                  desc: 'Provides emotional support and community connection for caregivers. Essential for your own wellbeing throughout this journey.',
+                  what: 'Support Group Facilitators run peer support programs for family caregivers. They create safe spaces to share experiences, learn coping strategies, and build community with others who understand your journey. Many also offer educational programs and 24/7 helplines.',
+                  recommendations: [
+                    {
+                      id: 'alz_co',
+                      name: 'Alzheimer\'s Association Colorado',
+                      role: 'Caregiver Support Services',
+                      location: 'Multiple Locations',
+                      rating: '4.8',
+                      availability: 'Open enrollment - multiple group options',
+                      availType: 'success',
+                      desc: 'Free support groups, education programs, and 24/7 helpline. Connects caregivers with resources and community throughout the care journey.',
+                      initials: 'AAC',
+                      phone: '(303) 555-0455',
+                      email: 'support@alzco.org',
+                      exp: 'Weekly structured groups',
+                      credentials: [
+                        'Affiliated with Alzheimer\'s Association facilitators',
+                        'Licensed Marriage and Family Therapists (LMFT)',
+                        '20+ years group leadership'
+                      ],
+                      focus: ['Spouse Support', 'Adult Children Caregivers', 'Stress Management', 'Community Resources']
+                    },
+                    {
+                      id: 'rocky',
+                      name: 'Rocky Mountain Caregiver Alliance',
+                      role: 'Therapist-Led Support Group',
+                      location: 'Aurora, CO',
+                      rating: '4.8',
+                      availability: 'Online & in-person options',
+                      availType: 'success',
+                      desc: 'Structured support workshops focused on stress management, behavioral strategies, and peer solidarity.',
+                      initials: 'RMC',
+                      phone: '(303) 555-0499',
+                      email: 'alliance@rmcaregivers.org',
+                      exp: 'Bi-weekly therapy groups',
+                      credentials: [
+                        'Certified Group Psychotherapists',
+                        'Specialized Dementia Education Curriculum',
+                        'Non-profit sponsored caregiver network'
+                      ],
+                      focus: ['Grief Counseling', 'Behavioral Strategies', 'Online Support Groups', 'Respite Coordination']
+                    }
+                  ]
+                }
+              };
+
+              const currentTabInfo = providerData[matchingActiveTab];
+
+              return (
+                <div style={{ width: '100%' }}>
+                  {/* Top subheader with progress details */}
+                  <div className="matching-header-row">
+                    <span>{currentTabInfo.label}</span>
+                    <span>{currentTabInfo.pct} Complete</span>
+                  </div>
+                  <div className="matching-progress-bar-track">
+                    <div className="matching-progress-bar-fill" style={{ width: currentTabInfo.pct }}></div>
+                  </div>
+                  <div className="planner-workspace-card" style={{ marginTop: '16px', display: 'flex' }}>
+                    {/* Left Column: Sidebar list of Provider Types */}
+                    <div className="workspace-sidebar" style={{ width: '300px', flexShrink: 0, padding: '12px 14px 20px 14px', borderRight: '1px solid #edf2f1', display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
+                      <span className="scrollspy-title" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '12px', display: 'block', textTransform: 'none', letterSpacing: 'normal' }}>Provider Types</span>
+                      <ul className="scrollspy-list" style={{ marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '6px', listStyle: 'none', padding: '0', margin: '0' }}>
+                        {Object.keys(providerData).map((key) => {
+                          const isSelected = !!selectedProviders[key];
+                          const isActive = matchingActiveTab === key;
+                          return (
+                            <li key={key}>
+                              <button 
+                                className={`scrollspy-item ${isActive ? 'active' : ''}`}
+                                onClick={() => setMatchingActiveTab(key)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '3px 0', cursor: 'pointer' }}
+                              >
+                                <span className={`scrollspy-dot ${isActive ? 'active' : ''}`} style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isActive ? 'var(--primary-color)' : '#cddbd8', display: 'inline-block', marginRight: '6px' }}></span>
+                                {isSelected && (
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--primary-color)', marginRight: '2px' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                  </span>
+                                )}
+                                <span style={{ fontSize: '11.5px', fontWeight: isActive ? '600' : '400', color: isActive ? 'var(--text-dark)' : 'var(--text-gray)' }}>
+                                  {providerData[key].title}
+                                </span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+
+                      {/* What They Do Section */}
+                      <div style={{
+                        marginTop: '6px',
+                        background: '#f8faf9',
+                        borderRadius: '8px',
+                        padding: '8px 10px',
+                        border: '1px solid #edf2f1'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '11px' }}>💡</span>
+                          <span style={{ fontSize: '9px', fontWeight: '700', color: 'var(--text-dark)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>What They Do</span>
+                        </div>
+                        <p style={{ fontSize: '11px', color: 'var(--text-gray)', lineHeight: '1.4', margin: 0 }}>
+                          {currentTabInfo.what}
+                        </p>
+                      </div>
+
+                      {/* Side buttons for current matching tab */}
+                      <div style={{ marginTop: '10px', paddingTop: '6px', borderTop: '1px solid #edf2f1' }}>
+                        <button
+                          className="matching-primary-cta active"
+                          onClick={() => {
+                            const topDoc = currentTabInfo.recommendations[0].name;
+                            setSelectedProviders(prev => ({ ...prev, [matchingActiveTab]: topDoc }));
+                            if (matchingActiveTab === 'memory') setMatchingActiveTab('home');
+                            else if (matchingActiveTab === 'home') setMatchingActiveTab('geriatric');
+                            else if (matchingActiveTab === 'geriatric') setMatchingActiveTab('group');
+                            else setNavigatorScreen('PLAN');
+                          }}
+                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', width: '100%', padding: '6px 8px', fontSize: '11px', whiteSpace: 'nowrap' }}
+                        >
+                          Use Recommendation &rarr;
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Content area */}
+                    <div className="workspace-content" style={{ flex: 1, padding: '20px 24px 40px 24px' }}>
+                      <div style={{ marginBottom: '16px' }}>
+                        <h1 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-dark)', marginBottom: '4px' }}>
+                          {currentTabInfo.title}
+                        </h1>
+                        <p style={{ fontSize: '12.5px', color: 'var(--text-gray)', lineHeight: '1.55', margin: 0 }}>
+                          {currentTabInfo.desc}
+                        </p>
+                      </div>
+
+                      <div style={{ borderTop: '1px solid #edf3f2', paddingTop: '16px' }}>
+                        <h2 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-dark)', marginBottom: '4px' }}>
+                          Our Recommendations
+                        </h2>
+                        <p style={{ fontSize: '12.5px', color: 'var(--text-gray)', marginBottom: '16px' }}>
+                          Based on your location and needs, here are our top matches:
+                        </p>
+
+                      <div className="recommendations-list">
+                        {currentTabInfo.recommendations.map((doc, index) => {
+                          const isExpanded = expandedProviders[doc.id];
+                          const isSelected = selectedProviders[matchingActiveTab] === doc.name;
+
+                          return (
+                            <div key={doc.id} className={`matching-recom-card ${isSelected ? 'selected' : ''}`}>
+                              {index === 0 && (
+                                <div className="matching-top-match-badge">Top Match</div>
+                              )}
+
+                              <div className="matching-avatar-circle">
+                                {doc.initials}
+                              </div>
+
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                  <h3 className="matching-doc-name">{doc.name}</h3>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '700', color: '#b38600' }}>
+                                    <span>★</span>
+                                    <span>{doc.rating}</span>
+                                  </div>
+                                </div>
+
+                                <div className="matching-meta-badges">
+                                  <span className="matching-role-badge">{doc.role}</span>
+                                  <span className={`matching-avail-badge ${doc.availType}`}>
+                                    {doc.availability}
+                                  </span>
+                                </div>
+
+                                <div className="matching-location-info">
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                      <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path>
+                                      <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
+                                    {doc.location}
+                                  </span>
+                                </div>
+
+                                <p className="matching-doc-desc">
+                                  {doc.desc}
+                                </p>
+
+                                <div className="matching-card-actions">
+                                  <button
+                                    className={`matching-select-btn ${isSelected ? 'selected' : ''}`}
+                                    onClick={() => handleSelectProvider(matchingActiveTab, doc.name)}
+                                  >
+                                    {isSelected ? 'Selected' : 'Select Provider'}
+                                  </button>
+
+                                  <button
+                                    className="matching-more-info-btn"
+                                    onClick={() => setExpandedProviders(prev => ({ ...prev, [doc.id]: !prev[doc.id] }))}
+                                  >
+                                    {isExpanded ? 'Less Info' : 'More Info'}
+                                    <svg 
+                                      style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} 
+                                      xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                                    >
+                                      <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                  </button>
+                                </div>
+
+                                {/* Collapsible detail drawer */}
+                                {isExpanded && (
+                                  <div className="matching-detail-drawer">
+                                    <div className="matching-detail-section">
+                                      <span className="matching-detail-label">Contact Information</span>
+                                      <span className="matching-detail-val">📞 {doc.phone}</span>
+                                      <span className="matching-detail-val">✉️ {doc.email}</span>
+                                    </div>
+                                    <div className="matching-detail-section">
+                                      <span className="matching-detail-label">Credentials</span>
+                                      {doc.credentials.map((cred, i) => (
+                                        <span key={i} className="matching-detail-val">• {cred}</span>
+                                      ))}
+                                    </div>
+                                    <div className="matching-detail-section" style={{ gridColumn: 'span 2' }}>
+                                      <span className="matching-detail-label">Experience</span>
+                                      <span className="matching-detail-val">{doc.exp}</span>
+                                    </div>
+                                    <div className="matching-detail-section" style={{ gridColumn: 'span 2' }}>
+                                      <span className="matching-detail-label">Areas of Focus</span>
+                                      <div className="matching-detail-pill-grid">
+                                        {doc.focus.map((f, i) => (
+                                          <span key={i} className="matching-detail-pill">{f}</span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Matching Action button row bottom */}
+                      <div className="matching-action-row-bottom">
+                        <button
+                          className={`matching-primary-cta ${selectedProviders[matchingActiveTab] && selectedProviders[matchingActiveTab] !== 'Skipped' ? 'active' : ''}`}
+                          disabled={!selectedProviders[matchingActiveTab] || selectedProviders[matchingActiveTab] === 'Skipped'}
+                          onClick={() => {
+                            if (matchingActiveTab === 'memory') setMatchingActiveTab('home');
+                            else if (matchingActiveTab === 'home') setMatchingActiveTab('geriatric');
+                            else if (matchingActiveTab === 'geriatric') setMatchingActiveTab('group');
+                            else setNavigatorScreen('PLAN');
+                          }}
+                        >
+                          {matchingActiveTab === 'group' ? 'Build My Care Plan' : 'Continue to Next Provider Type'}
+                        </button>
+                        <button
+                          className="matching-secondary-cta"
+                          onClick={() => {
+                            if (matchingActiveTab === 'memory') setMatchingActiveTab('home');
+                            else if (matchingActiveTab === 'home') setMatchingActiveTab('geriatric');
+                            else if (matchingActiveTab === 'geriatric') setMatchingActiveTab('group');
+                            else setNavigatorScreen('PLAN');
+                          }}
+                        >
+                          Skip This Provider Type
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          );
+        })()
+          ) : (
+            /* STEP 5: CARE PLAN SCREEN */
+            <div style={{ width: '100%', animation: 'fadeIn 0.5s ease', fontFamily: 'Outfit, sans-serif' }}>
+              {/* Header */}
+              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '16px', marginBottom: '24px' }}>
+                <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#2c5e59', margin: '0 0 4px 0' }}>
+                  Let's address your care needs
+                </h1>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                  Home Transition for Eleanor
+                </p>
+              </div>
+
+              {/* Banner Info Card */}
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '16px',
+                padding: '24px',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+                marginBottom: '24px',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: '-50px',
+                  right: '-50px',
+                  width: '150px',
+                  height: '150px',
+                  background: 'rgba(61, 120, 114, 0.03)',
+                  borderRadius: '50%'
+                }}></div>
+                <p style={{ fontSize: '13px', color: '#334155', lineHeight: '1.7', margin: '0 0 12px 0' }}>
+                  Every aspect of your care is important. Based on your specific situation, bQuest has curated a list of certified Service Providers and educational resources just for you.
+                </p>
+                <p style={{ fontSize: '13px', color: '#334155', lineHeight: '1.7', margin: 0 }}>
+                  We've selected a <strong>Primary Specialist</strong> that we suggest connecting with first. Feel free to connect with them or any of the other providers below when you are ready, or just learn more about what they do.
+                </p>
+              </div>
+
+              {/* Action Buttons Row */}
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '32px', flexWrap: 'wrap' }}>
+                <button style={{
+                  backgroundColor: '#3d7872',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '8px 16px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 9.73v9.19z"></path>
+                  </svg>
+                  Contact Primary Specialist
+                </button>
+                <button style={{
+                  backgroundColor: '#ffffff',
+                  color: '#3d7872',
+                  border: '1px solid #3d7872',
+                  borderRadius: '6px',
+                  padding: '8px 16px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}>
+                  Download Care Plan
+                </button>
+                <button style={{
+                  backgroundColor: '#ffffff',
+                  color: '#3d7872',
+                  border: '1px solid #3d7872',
+                  borderRadius: '6px',
+                  padding: '8px 16px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}>
+                  Request Concierge Support
+                </button>
+              </div>
+
+              {/* Primary Need Heading & Card */}
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ marginBottom: '10px' }}>
+                  <span style={{
+                    backgroundColor: '#f55b14',
+                    color: '#ffffff',
+                    fontSize: '9.5px',
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    display: 'inline-block'
+                  }}>
+                    Primary Need
+                  </span>
+                </div>
+
+                <div style={{
+                  background: '#ffffff',
+                  border: '1px solid #ccdcd9',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{
+                    backgroundColor: '#4d827a',
+                    padding: '10px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '700' }}>Memory Care Specialist</span>
+                    <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '600', cursor: 'pointer', opacity: 0.9 }}>Learn More</span>
+                  </div>
+                  <div style={{ padding: '20px 24px' }}>
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                      <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        backgroundColor: '#386862',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '700',
+                        fontSize: '13px'
+                      }}>
+                        DP
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b', margin: '0 0 2px 0' }}>Dr. Patricia Chen</h3>
+                        <p style={{ fontSize: '11.5px', color: '#64748b', margin: '0 0 4px 0' }}>Neurologist & Memory Care Specialist</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontSize: '12px', fontWeight: '700' }}>
+                          ★ <span style={{ color: '#475569' }}>4.9</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#475569', lineHeight: '1.6', margin: '0 0 16px 0' }}>
+                      Memory care specialists provide crucial medical expertise in diagnosing and managing Alzheimer's and related dementias. They can prescribe medications, monitor disease progression, and adjust treatment plans as your loved one's needs evolve.
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button style={{
+                        backgroundColor: '#ffffff',
+                        color: '#3d7872',
+                        border: '1px solid #3d7872',
+                        borderRadius: '6px',
+                        padding: '6px 14px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        cursor: 'pointer'
+                      }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        Message
+                      </button>
+                      <button style={{
+                        backgroundColor: '#3d7872',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '6px 14px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        cursor: 'pointer'
+                      }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 9.73v9.19z"></path>
+                        </svg>
+                        Schedule Call
+                      </button>
+                      <button style={{
+                        backgroundColor: '#ffffff',
+                        color: '#3d7872',
+                        border: '1px solid #3d7872',
+                        borderRadius: '6px',
+                        padding: '6px 14px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}>
+                        View Profile
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Other Providers Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                {/* Home Health Care Card */}
+                <div style={{
+                  background: '#ffffff',
+                  border: '1px solid #ccdcd9',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{
+                    backgroundColor: '#4d827a',
+                    padding: '10px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '700' }}>Home Health Care</span>
+                    <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '600', cursor: 'pointer', opacity: 0.9 }}>Learn More</span>
+                  </div>
+                  <div style={{ padding: '20px 24px' }}>
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                      <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        backgroundColor: '#386862',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '700',
+                        fontSize: '13px'
+                      }}>
+                        CH
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: '13.5px', fontWeight: '700', color: '#1e293b', margin: '0 0 2px 0' }}>ComfortCare Home Services</h3>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0' }}>In-Home Personal Care Provider</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontSize: '11.5px', fontWeight: '700' }}>
+                          ★ <span style={{ color: '#475569' }}>4.7</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.6', margin: 0 }}>
+                      Professional home care providers ensure your loved one receives consistent, compassionate assistance with daily activities while remaining in the comfort of their own home. These services help maintain quality of life and can delay or prevent the need for institutional care.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Care Coordination Card */}
+                <div style={{
+                  background: '#ffffff',
+                  border: '1px solid #ccdcd9',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{
+                    backgroundColor: '#4d827a',
+                    padding: '10px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '700' }}>Care Coordination</span>
+                    <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '600', cursor: 'pointer', opacity: 0.9 }}>Learn More</span>
+                  </div>
+                  <div style={{ padding: '20px 24px' }}>
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                      <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        backgroundColor: '#386862',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '700',
+                        fontSize: '13px'
+                      }}>
+                        SW
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: '13.5px', fontWeight: '700', color: '#1e293b', margin: '0 0 2px 0' }}>Sarah Williams, RN, CMC</h3>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0' }}>Certified Care Manager</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontSize: '11.5px', fontWeight: '700' }}>
+                          ★ <span style={{ color: '#475569' }}>5</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.6', margin: 0 }}>
+                      Care managers serve as your advocate and guide through the complex healthcare system, helping coordinate multiple providers and services. They can save you countless hours of research and phone calls while ensuring nothing falls through the cracks.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Support Services Card */}
+                <div style={{
+                  background: '#ffffff',
+                  border: '1px solid #ccdcd9',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{
+                    backgroundColor: '#4d827a',
+                    padding: '10px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '700' }}>Support Services</span>
+                    <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '600', cursor: 'pointer', opacity: 0.9 }}>Learn More</span>
+                  </div>
+                  <div style={{ padding: '20px 24px' }}>
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                      <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        backgroundColor: '#386862',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '700',
+                        fontSize: '13px'
+                      }}>
+                        AA
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: '13.5px', fontWeight: '700', color: '#1e293b', margin: '0 0 2px 0' }}>Alzheimer's Association Colorado</h3>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0' }}>Caregiver Support & Education</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontSize: '11.5px', fontWeight: '700' }}>
+                          ★ <span style={{ color: '#475569' }}>4.9</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.6', margin: 0 }}>
+                      Caregiver support services provide essential emotional support and practical guidance to help you navigate the challenges of caring for a loved one. Connecting with others who understand your experience can reduce stress, prevent burnout, and help you be a better caregiver.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resources Section */}
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '32px', marginTop: '32px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#2c5e59', margin: '0 0 6px 0' }}>
+                  Resources about your care stage
+                </h2>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 24px 0' }}>
+                  Educational materials to help you understand and navigate your care journey
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                  {/* Resource 1 */}
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #edf4f3',
+                    borderRadius: '10px',
+                    padding: '20px',
+                    display: 'flex',
+                    gap: '14px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.01)'
+                  }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      backgroundColor: '#ecf4f3',
+                      color: '#3d7872',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      flexShrink: 0
+                    }}>
+                      📖
+                    </div>
+                    <div>
+                      <span style={{
+                        backgroundColor: '#f1f5f9',
+                        color: '#475569',
+                        fontSize: '9px',
+                        fontWeight: '700',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        display: 'inline-block',
+                        marginBottom: '8px'
+                      }}>
+                        Video Series
+                      </span>
+                      <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>
+                        Communication Techniques for Dementia
+                      </h3>
+                      <p style={{ fontSize: '11.5px', color: '#64748b', lineHeight: '1.5', margin: '0 0 12px 0' }}>
+                        Effective ways to connect and communicate as cognition changes
+                      </p>
+                      <a href="#" style={{ fontSize: '11.5px', color: '#3d7872', fontWeight: '600', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        Access resource &rarr;
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Resource 2 */}
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #edf4f3',
+                    borderRadius: '10px',
+                    padding: '20px',
+                    display: 'flex',
+                    gap: '14px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.01)'
+                  }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      backgroundColor: '#ecf4f3',
+                      color: '#3d7872',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      flexShrink: 0
+                    }}>
+                      📖
+                    </div>
+                    <div>
+                      <span style={{
+                        backgroundColor: '#f1f5f9',
+                        color: '#475569',
+                        fontSize: '9px',
+                        fontWeight: '700',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        display: 'inline-block',
+                        marginBottom: '8px'
+                      }}>
+                        Guide
+                      </span>
+                      <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>
+                        Daily Routine Strategies
+                      </h3>
+                      <p style={{ fontSize: '11.5px', color: '#64748b', lineHeight: '1.5', margin: '0 0 12px 0' }}>
+                        Establishing structure and consistency for better quality of life
+                      </p>
+                      <a href="#" style={{ fontSize: '11.5px', color: '#3d7872', fontWeight: '600', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        Access resource &rarr;
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Resource 3 */}
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #edf4f3',
+                    borderRadius: '10px',
+                    padding: '20px',
+                    display: 'flex',
+                    gap: '14px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.01)'
+                  }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      backgroundColor: '#ecf4f3',
+                      color: '#3d7872',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      flexShrink: 0
+                    }}>
+                      📖
+                    </div>
+                    <div>
+                      <span style={{
+                        backgroundColor: '#f1f5f9',
+                        color: '#475569',
+                        fontSize: '9px',
+                        fontWeight: '700',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        display: 'inline-block',
+                        marginBottom: '8px'
+                      }}>
+                        Resource
+                      </span>
+                      <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>
+                        Medicare & Insurance Navigator
+                      </h3>
+                      <p style={{ fontSize: '11.5px', color: '#64748b', lineHeight: '1.5', margin: '0 0 12px 0' }}>
+                        Understanding coverage for home care, medical equipment, and specialized services
+                      </p>
+                      <a href="#" style={{ fontSize: '11.5px', color: '#3d7872', fontWeight: '600', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        Access resource &rarr;
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Resource 4 */}
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #edf4f3',
+                    borderRadius: '10px',
+                    padding: '20px',
+                    display: 'flex',
+                    gap: '14px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.01)'
+                  }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      backgroundColor: '#ecf4f3',
+                      color: '#3d7872',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      flexShrink: 0
+                    }}>
+                      📖
+                    </div>
+                    <div>
+                      <span style={{
+                        backgroundColor: '#f1f5f9',
+                        color: '#475569',
+                        fontSize: '9px',
+                        fontWeight: '700',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        display: 'inline-block',
+                        marginBottom: '8px'
+                      }}>
+                        Directory
+                      </span>
+                      <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>
+                        Support Group Finder
+                      </h3>
+                      <p style={{ fontSize: '11.5px', color: '#64748b', lineHeight: '1.5', margin: '0 0 12px 0' }}>
+                        Connect with other families navigating similar challenges
+                      </p>
+                      <a href="#" style={{ fontSize: '11.5px', color: '#3d7872', fontWeight: '600', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        Access resource &rarr;
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           )
         ) : (
