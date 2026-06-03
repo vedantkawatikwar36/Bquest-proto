@@ -525,8 +525,20 @@ function App() {
                 }
               }
 
+              const currentStepNum = navigatorScreen === 'PROVIDERS' ? 3 : navigatorScreen === 'JOURNEY' ? 2 : 1;
+              const isClickable = step.num < currentStepNum;
+
               return (
-                <div key={step.num} className={`step-item ${isActive ? 'active' : ''}`}>
+                <div 
+                  key={step.num} 
+                  className={`step-item ${isActive ? 'active' : ''} ${isClickable ? 'clickable' : ''}`}
+                  onClick={isClickable ? () => {
+                    if (step.num === 1) setNavigatorScreen('STORY');
+                    else if (step.num === 2) setNavigatorScreen('JOURNEY');
+                    else if (step.num === 3) setNavigatorScreen('PROVIDERS');
+                  } : undefined}
+                  style={{ cursor: isClickable ? 'pointer' : 'default' }}
+                >
                   <div className="step-badge" style={{ backgroundColor: isCompleted ? 'var(--primary-color)' : '', color: isCompleted ? '#ffffff' : '' }}>
                     {isCompleted ? '✓' : step.num}
                   </div>
