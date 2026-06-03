@@ -977,7 +977,7 @@ select {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 1160px;
+  max-width: 540px;
   /* Increased from 1050px to 1160px for maximum horizontal space */
   margin: 0 auto;
   padding: 4px 24px 10px;
@@ -1042,17 +1042,17 @@ select {
 
 .chat-message-stream {
   flex: 1;
-  padding: 16px 20px;
+  padding: 10px 14px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   scroll-behavior: smooth;
 }
 
 .message-row {
   display: flex;
-  gap: 16px;
+  gap: 10px;
   max-width: 85%;
   align-items: flex-start;
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -1068,8 +1068,8 @@ select {
 }
 
 .message-avatar {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1090,14 +1090,14 @@ select {
 .message-bubble-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .message-bubble {
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-radius: 6px;
-  font-size: 14.5px;
-  line-height: 1.5;
+  font-size: 13.5px;
+  line-height: 1.4;
 }
 
 .message-row.ai .message-bubble {
@@ -1115,7 +1115,7 @@ select {
 /* Chat Interactive Buttons */
 .chat-choices-row {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -1123,10 +1123,10 @@ select {
   background-color: var(--white);
   border: 1px solid #c2d6d4;
   color: var(--text-dark);
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 6px 14px;
+  border-radius: 6px;
   font-family: var(--font-family);
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
@@ -1140,12 +1140,11 @@ select {
 
 /* Chat Footer / Input Row */
 .chat-footer {
-  padding: 10px 20px 14px;
+  padding: 8px 16px 10px;
   border-top: none;
-  /* Removed the differentiator horizontal line */
   background-color: var(--white);
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -1154,9 +1153,9 @@ select {
   background-color: #f3f5f4;
   border: none;
   border-radius: 24px;
-  padding: 14px 24px;
+  padding: 8px 16px;
   font-family: var(--font-family);
-  font-size: 14.5px;
+  font-size: 13px;
   color: var(--text-dark);
   transition: var(--transition);
 }
@@ -1168,8 +1167,8 @@ select {
 }
 
 .chat-send-btn {
-  width: 44px;
-  height: 44px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background-color: #9ebdb9;
   /* Default inactive color */
@@ -1927,7 +1926,7 @@ select {
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 0px;
 }
 
 /* Desktop-only fixed height and internal content scroll */
@@ -2910,4 +2909,4 @@ select {
 
 .matching-secondary-cta:hover {
   background-color: #d1dbd9;
-}
+}

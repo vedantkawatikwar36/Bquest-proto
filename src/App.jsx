@@ -171,7 +171,7 @@ function App() {
       container.scrollTop = 0;
     }
     window.scrollTo(0, 0);
-    
+
     // Reset chatbot navigator states
     setChatStep(1);
     setChatMessages([
@@ -223,6 +223,7 @@ function App() {
   const [matchingActiveTab, setMatchingActiveTab] = useState('memory');
   const [selectedProviders, setSelectedProviders] = useState({});
   const [expandedProviders, setExpandedProviders] = useState({});
+  const [activeCarePlanSection, setActiveCarePlanSection] = useState('plan-overview');
 
   const handleSelectProvider = (category, providerName) => {
     setSelectedProviders(prev => ({
@@ -232,7 +233,7 @@ function App() {
   };
 
   React.useEffect(() => {
-    if (activeTab !== 'NAVIGATOR' || (navigatorScreen !== 'JOURNEY' && navigatorScreen !== 'PROVIDERS')) return;
+    if (activeTab !== 'NAVIGATOR' || (navigatorScreen !== 'JOURNEY' && navigatorScreen !== 'PROVIDERS' && navigatorScreen !== 'PLAN')) return;
 
     const handleScroll = () => {
       const containerEl = document.querySelector('.workspace-content');
@@ -252,9 +253,43 @@ function App() {
 
       const getAbsoluteOffsetTop = (el) => el ? el.getBoundingClientRect().top + window.scrollY : 0;
 
-      let scrollPos = isDesktop 
+      let scrollPos = isDesktop
         ? containerEl.scrollTop + (containerEl.clientHeight / 2)
         : window.scrollY + (window.innerHeight / 2);
+
+      // PLAN (Step 5: Care Plan) Scrollspy
+      if (navigatorScreen === 'PLAN') {
+        const overviewEl = document.getElementById('section-plan-overview');
+        const teamEl = document.getElementById('section-plan-team');
+        const subMemoryEl = document.getElementById('sub-memory');
+        const subHomeEl = document.getElementById('sub-home');
+        const subCoordEl = document.getElementById('sub-coord');
+        const subSupportEl = document.getElementById('sub-support');
+
+        if (!overviewEl || !teamEl) return;
+
+        const overviewTop = getStaticOffsetTop(overviewEl);
+        const teamTop = getStaticOffsetTop(teamEl);
+        const subMemoryTop = subMemoryEl ? getStaticOffsetTop(subMemoryEl) : teamTop;
+        const subHomeTop = subHomeEl ? getStaticOffsetTop(subHomeEl) : teamTop;
+        const subCoordTop = subCoordEl ? getStaticOffsetTop(subCoordEl) : teamTop;
+        const subSupportTop = subSupportEl ? getStaticOffsetTop(subSupportEl) : teamTop;
+
+        if (subSupportEl && scrollPos >= subSupportTop) {
+          setActiveCarePlanSection('plan-team-support');
+        } else if (subCoordEl && scrollPos >= subCoordTop) {
+          setActiveCarePlanSection('plan-team-coord');
+        } else if (subHomeEl && scrollPos >= subHomeTop) {
+          setActiveCarePlanSection('plan-team-home');
+        } else if (subMemoryEl && scrollPos >= subMemoryTop) {
+          setActiveCarePlanSection('plan-team-memory');
+        } else if (scrollPos >= teamTop) {
+          setActiveCarePlanSection('plan-team');
+        } else {
+          setActiveCarePlanSection('plan-overview');
+        }
+        return;
+      }
 
       // PROVIDERS (Step 3: Provider Types) Scrollspy
       if (navigatorScreen === 'PROVIDERS') {
@@ -290,7 +325,7 @@ function App() {
           const startOffset = groupTop - (containerEl.clientHeight / 2);
           const endOffset = memoryTop - (containerEl.clientHeight / 2);
           const currentScroll = containerEl.scrollTop;
-          
+
           let progressPercent = 0;
           if (currentScroll >= startOffset) {
             progressPercent = ((currentScroll - startOffset) / (endOffset - startOffset)) * 100;
@@ -306,7 +341,7 @@ function App() {
       const sharedEl = document.getElementById('section-shared');
       const stageEl = document.getElementById('section-stage');
       const nextEl = document.getElementById('section-next-steps');
-      
+
       const pPlanEl = document.getElementById('section-pillar-plan');
       const pTeamEl = document.getElementById('section-pillar-team');
       const pBenefitsEl = document.getElementById('section-pillar-benefits');
@@ -358,7 +393,7 @@ function App() {
         const startOffset = getStaticOffsetTop(pPlanEl) - (containerEl.clientHeight / 2);
         const endOffset = getStaticOffsetTop(pCostsEl) - (containerEl.clientHeight / 2);
         const currentScroll = containerEl.scrollTop;
-        
+
         let progressPercent = 0;
         if (currentScroll >= startOffset) {
           progressPercent = ((currentScroll - startOffset) / (endOffset - startOffset)) * 100;
@@ -393,7 +428,7 @@ function App() {
     };
 
     window.addEventListener('wheel', handleGlobalWheel, { passive: true });
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       if (containerEl) {
@@ -404,13 +439,22 @@ function App() {
   }, [activeTab, navigatorScreen]);
 
   React.useEffect(() => {
-    if (activeTab === 'NAVIGATOR' && navigatorScreen === 'JOURNEY') {
-      window.scrollTo(0, 0);
-      const container = document.querySelector('.workspace-content');
-      if (container) {
-        container.scrollTop = 0;
+    if (activeTab === 'NAVIGATOR') {
+      if (navigatorScreen === 'JOURNEY') {
+        window.scrollTo(0, 0);
+        const container = document.querySelector('.workspace-content');
+        if (container) {
+          container.scrollTop = 0;
+        }
+        setActiveSection('journey');
+      } else if (navigatorScreen === 'PLAN') {
+        window.scrollTo(0, 0);
+        const container = document.querySelector('.workspace-content');
+        if (container) {
+          container.scrollTop = 0;
+        }
+        setActiveCarePlanSection('plan-overview');
       }
-      setActiveSection('journey');
     }
   }, [activeTab, navigatorScreen]);
 
@@ -480,7 +524,7 @@ function App() {
               </svg>
               <span className="badge-dot"></span>
             </button>
-            
+
             <button className="nav-icon-btn">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -496,15 +540,15 @@ function App() {
         <div className="navigator-steps-wrapper">
           <div className="navigator-steps">
             <div className="step-line" style={{ left: '10%', right: '10%' }}></div>
-            <div 
-              className="step-line completed" 
-              style={{ 
-                left: '10%', 
+            <div
+              className="step-line completed"
+              style={{
+                left: '10%',
                 width: navigatorScreen === 'PLAN' ? '70%' : navigatorScreen === 'MATCHING' ? '58%' : navigatorScreen === 'PROVIDERS' ? '45%' : navigatorScreen === 'JOURNEY' ? '20%' : '0%',
                 transition: 'width 0.8s ease'
               }}
             ></div>
-            
+
             {[
               { num: 1, label: 'Your Story', sub: 'Tell us about your situation' },
               { num: 2, label: 'Your Journey', sub: 'Understanding what to expect' },
@@ -514,7 +558,7 @@ function App() {
             ].map((step) => {
               let isActive = false;
               let isCompleted = false;
-              
+
               if (navigatorScreen === 'PLAN') {
                 if (step.num < 5) {
                   isCompleted = true;
@@ -553,8 +597,8 @@ function App() {
               const isClickable = step.num < currentStepNum;
 
               return (
-                <div 
-                  key={step.num} 
+                <div
+                  key={step.num}
                   className={`step-item ${isActive ? 'active' : ''} ${isClickable ? 'clickable' : ''}`}
                   onClick={isClickable ? () => {
                     if (step.num === 1) setNavigatorScreen('STORY');
@@ -676,9 +720,9 @@ function App() {
                           View &rarr;
                         </button>
                       </div>
-                      
+
                       <p className="care-plan-card-description">{plan.description}</p>
-                      
+
                       <div className="care-plan-card-footer">
                         <div className="care-plan-card-date">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="clock-icon">
@@ -822,7 +866,7 @@ function App() {
                     <span className="scrollspy-title" style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px', display: 'block', textTransform: 'none', letterSpacing: 'normal' }}>Planning Sections</span>
                     <ul className="scrollspy-list" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px', listStyle: 'none', padding: '0' }}>
                       <li>
-                        <button 
+                        <button
                           className={`scrollspy-item ${activeSection === 'journey' ? 'active' : ''}`}
                           onClick={() => scrollToSection('journey')}
                         >
@@ -831,7 +875,7 @@ function App() {
                         </button>
                       </li>
                       <li>
-                        <button 
+                        <button
                           className={`scrollspy-item ${activeSection === 'shared' ? 'active' : ''}`}
                           onClick={() => scrollToSection('shared')}
                         >
@@ -840,18 +884,18 @@ function App() {
                         </button>
                       </li>
                       <li>
-                        <button 
+                        <button
                           className={`scrollspy-item ${(activeSection === 'stage' || activeSection.startsWith('pillar-')) ? 'active' : ''}`}
                           onClick={() => scrollToSection('stage')}
                         >
                           <span className="scrollspy-dot"></span>
                           Understand Your Care Stage
                         </button>
-                        
+
                         {/* Always-visible Sub-list for 4 sub-stages */}
                         <ul className="scrollspy-sub-list" style={{ animation: 'fadeIn 0.3s ease', listStyle: 'none', paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '1.5px solid #edf2f1', marginTop: '8px' }}>
                           <li>
-                            <button 
+                            <button
                               className={`scrollspy-sub-item ${activeSection === 'pillar-plan' ? 'active' : ''}`}
                               onClick={() => scrollToSection('pillar-plan')}
                             >
@@ -860,7 +904,7 @@ function App() {
                             </button>
                           </li>
                           <li>
-                            <button 
+                            <button
                               className={`scrollspy-sub-item ${activeSection === 'pillar-team' ? 'active' : ''}`}
                               onClick={() => scrollToSection('pillar-team')}
                             >
@@ -869,7 +913,7 @@ function App() {
                             </button>
                           </li>
                           <li>
-                            <button 
+                            <button
                               className={`scrollspy-sub-item ${activeSection === 'pillar-benefits' ? 'active' : ''}`}
                               onClick={() => scrollToSection('pillar-benefits')}
                             >
@@ -878,7 +922,7 @@ function App() {
                             </button>
                           </li>
                           <li>
-                            <button 
+                            <button
                               className={`scrollspy-sub-item ${activeSection === 'pillar-costs' ? 'active' : ''}`}
                               onClick={() => scrollToSection('pillar-costs')}
                             >
@@ -889,8 +933,8 @@ function App() {
                         </ul>
                       </li>
                     </ul>
-                    
-                    <button 
+
+                    <button
                       className={`sidebar-meet-btn ${activeSection === 'next-steps' ? 'filled' : 'outline'}`}
                       onClick={() => scrollToSection('next-steps')}
                     >
@@ -931,7 +975,7 @@ function App() {
                         You're planning care <strong>{chatRelation ? chatRelation.toLowerCase() : 'for a family member'}</strong> — your mother, who is showing early signs of memory loss.
                         The fact that you're <strong>{chatTimeline ? chatTimeline.toLowerCase() : 'planning ahead'}</strong> rather than responding to a crisis is a profound gift. It means you have the precious opportunity to make thoughtful decisions, to explore options without urgency clouding your judgment, and to build a support system before the road becomes more difficult.
                       </p>
-                      
+
                       <div className="shared-quote-box" style={{
                         backgroundColor: '#f7f6f2',
                         borderRadius: '10px',
@@ -947,7 +991,7 @@ function App() {
                       }}>
                         "{chatSituation || "My mother is showing early signs of memory loss and I want to plan ahead for her care needs."}"
                       </div>
-                      
+
                       <p className="shared-summary-para" style={{ fontSize: '13.5px', lineHeight: '1.6', color: 'var(--text-gray)', margin: '0' }}>
                         You're seeking support in the <strong>{chatZip || '80202'}</strong> area. These details help us connect you with the right resources and providers who can meet your mother where she is, with the care and compassion she deserves.
                       </p>
@@ -957,7 +1001,7 @@ function App() {
                     <div id="section-stage" style={{ paddingBottom: '32px', borderBottom: '1px solid #edf2f1' }}>
                       <h2 className="care-stage-title" style={{ fontSize: '19px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px' }}>Understand Your Care Stage</h2>
                       <span className="care-stage-subtitle" style={{ fontSize: '13px', color: 'var(--text-light)', fontWeight: '500', display: 'block', marginBottom: '16px' }}>Explore key areas of your care planning journey.</span>
-                      
+
                       <p className="care-stage-philosophy" style={{ fontSize: '14.5px', lineHeight: '1.6', color: 'var(--text-gray)', fontWeight: '600', marginBottom: '12px' }}>
                         Aging at home doesn't happen by accident—it happens with a plan.
                       </p>
@@ -976,7 +1020,7 @@ function App() {
                           <div className="timeline-milestone-dot">1</div>
                           <div className="timeline-journey-card" onClick={() => scrollToSection('pillar-plan')}>
                             <h3 className="timeline-card-title">1. Start with a Plan & Put Protections in Place</h3>
-                            
+
                             <div className="timeline-card-split-row">
                               <div className="timeline-card-left-col">
                                 <p className="timeline-card-desc">
@@ -987,7 +1031,7 @@ function App() {
                                   <span>Without a clear plan and decision-makers in place, families often face delays, confusion, or court involvement during a crisis.</span>
                                 </div>
                               </div>
-                              
+
                               <div className="timeline-card-right-col">
                                 <div className="pillar-considerations">
                                   <strong>As you think about this, consider:</strong>
@@ -1017,7 +1061,7 @@ function App() {
                           <div className="timeline-milestone-dot">2</div>
                           <div className="timeline-journey-card" onClick={() => scrollToSection('pillar-team')}>
                             <h3 className="timeline-card-title">2. Build Your Care Team</h3>
-                            
+
                             <div className="timeline-card-split-row">
                               <div className="timeline-card-left-col">
                                 <p className="timeline-card-desc">
@@ -1028,7 +1072,7 @@ function App() {
                                   <span>Care needs rarely stay the same. Having trusted providers in place reduces stress and allows you to respond quickly when things change.</span>
                                 </div>
                               </div>
-                              
+
                               <div className="timeline-card-right-col">
                                 <div className="pillar-considerations">
                                   <strong>As you think about this, consider:</strong>
@@ -1056,7 +1100,7 @@ function App() {
                           <div className="timeline-milestone-dot">3</div>
                           <div className="timeline-journey-card" onClick={() => scrollToSection('pillar-benefits')}>
                             <h3 className="timeline-card-title">3. Coverage & Benefits</h3>
-                            
+
                             <div className="timeline-card-split-row">
                               <div className="timeline-card-left-col">
                                 <p className="timeline-card-desc">
@@ -1067,7 +1111,7 @@ function App() {
                                   <span>Many families assume more is covered than actually is. Clarity upfront helps you plan realistically and maximize available benefits.</span>
                                 </div>
                               </div>
-                              
+
                               <div className="timeline-card-right-col">
                                 <div className="pillar-considerations">
                                   <strong>As you think about this, consider:</strong>
@@ -1096,7 +1140,7 @@ function App() {
                           <div className="timeline-milestone-dot">4</div>
                           <div className="timeline-journey-card" onClick={() => scrollToSection('pillar-costs')}>
                             <h3 className="timeline-card-title">4. Costs & Financials</h3>
-                            
+
                             <div className="timeline-card-split-row">
                               <div className="timeline-card-left-col">
                                 <p className="timeline-card-desc">
@@ -1107,7 +1151,7 @@ function App() {
                                   <span>Without a clear financial picture, families often delay decisions or make reactive choices that impact long-term stability.</span>
                                 </div>
                               </div>
-                              
+
                               <div className="timeline-card-right-col">
                                 <div className="pillar-considerations">
                                   <strong>As you think about this, consider:</strong>
@@ -1166,7 +1210,7 @@ function App() {
                     <p className="resources-subtitle" style={{ fontSize: '12px', color: 'var(--text-gray)', lineHeight: '1.5', marginBottom: '16px' }}>
                       Start here for expert guidance and support on your care journey.
                     </p>
-                    
+
                     <div className="resources-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <a href="https://www.alz.org" target="_blank" rel="noopener noreferrer" className="resource-item-card" style={{ padding: '12px 16px' }}>
                         <div className="resource-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
@@ -1217,7 +1261,7 @@ function App() {
                   <span className="scrollspy-title" style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px', display: 'block', textTransform: 'none', letterSpacing: 'normal' }}>Provider Types</span>
                   <ul className="scrollspy-list" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px', listStyle: 'none', padding: '0' }}>
                     <li>
-                      <button 
+                      <button
                         className={`scrollspy-item ${activeProviderSection === 'prov-group' ? 'active' : ''}`}
                         onClick={() => scrollToSection('prov-group')}
                       >
@@ -1226,7 +1270,7 @@ function App() {
                       </button>
                     </li>
                     <li>
-                      <button 
+                      <button
                         className={`scrollspy-item ${activeProviderSection === 'prov-home' ? 'active' : ''}`}
                         onClick={() => scrollToSection('prov-home')}
                       >
@@ -1235,7 +1279,7 @@ function App() {
                       </button>
                     </li>
                     <li>
-                      <button 
+                      <button
                         className={`scrollspy-item ${activeProviderSection === 'prov-geriatric' ? 'active' : ''}`}
                         onClick={() => scrollToSection('prov-geriatric')}
                       >
@@ -1244,7 +1288,7 @@ function App() {
                       </button>
                     </li>
                     <li>
-                      <button 
+                      <button
                         className={`scrollspy-item ${activeProviderSection === 'prov-memory' ? 'active' : ''}`}
                         onClick={() => scrollToSection('prov-memory')}
                       >
@@ -1253,8 +1297,8 @@ function App() {
                       </button>
                     </li>
                   </ul>
-                  
-                  <button 
+
+                  <button
                     className={`sidebar-meet-btn ${activeProviderSection === 'prov-next' ? 'filled' : 'outline'}`}
                     onClick={() => scrollToSection('prov-next')}
                   >
@@ -1265,7 +1309,7 @@ function App() {
                 {/* Middle Column: Content area (stretched beautifully across the rest of the workspace card) */}
                 <div className="workspace-content">
                   {/* Header Summary (Unified Style) */}
-                  <div id="section-prov-header" style={{ paddingBottom: '32px', borderBottom: '1px solid #edf2f1' }}>
+                  <div id="section-prov-header">
                     <span style={{ fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--primary-color)', letterSpacing: '1px' }}>Step 3 of 4: Your Care Team Overview</span>
                     <h1 className="providers-main-title" style={{ fontSize: '20px', textAlign: 'left', marginTop: '6px', marginBottom: '8px', fontWeight: '600' }}>Your Care Team Overview</h1>
                     <p className="providers-main-subtitle" style={{ textAlign: 'left', margin: '0 0 16px 0', fontSize: '13.5px', color: 'var(--text-gray)', maxWidth: '100%', lineHeight: '1.6' }}>
@@ -1664,40 +1708,59 @@ function App() {
 
               return (
                 <div style={{ width: '100%' }}>
-                  {/* Top subheader with progress details */}
-                  <div className="matching-header-row">
-                    <span>{currentTabInfo.label}</span>
-                    <span>{currentTabInfo.pct} Complete</span>
-                  </div>
-                  <div className="matching-progress-bar-track">
-                    <div className="matching-progress-bar-fill" style={{ width: currentTabInfo.pct }}></div>
-                  </div>
-                  <div className="planner-workspace-card" style={{ marginTop: '16px', display: 'flex' }}>
+                  <div className="planner-workspace-card" style={{ marginTop: '0px', display: 'flex' }}>
                     {/* Left Column: Sidebar list of Provider Types */}
-                    <div className="workspace-sidebar" style={{ width: '300px', flexShrink: 0, padding: '12px 14px 20px 14px', borderRight: '1px solid #edf2f1', display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
-                      <span className="scrollspy-title" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '12px', display: 'block', textTransform: 'none', letterSpacing: 'normal' }}>Provider Types</span>
+                    <div className="workspace-sidebar" style={{ width: '300px', flexShrink: 0, padding: '16px 14px 20px 14px', borderRight: '1px solid #edf2f1', display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
+                      {/* Top subheader with progress details */}
+                      <div className="matching-header-row" style={{ marginBottom: '6px' }}>
+                        <span>{currentTabInfo.label}</span>
+                        <span>{currentTabInfo.pct} Complete</span>
+                      </div>
+                      <div className="matching-progress-bar-track">
+                        <div className="matching-progress-bar-fill" style={{ width: currentTabInfo.pct }}></div>
+                      </div>
+                      {/* <span className="scrollspy-title" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '12px', display: 'block', textTransform: 'none', letterSpacing: 'normal' }}>Provider Types</span> */}
                       <ul className="scrollspy-list" style={{ marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '6px', listStyle: 'none', padding: '0', margin: '0' }}>
                         {Object.keys(providerData).map((key) => {
-                          const isSelected = !!selectedProviders[key];
+                          const selectionValue = selectedProviders[key];
+                          const isSelected = !!selectionValue;
+                          const isSkipped = selectionValue === 'Skipped';
+                          const isActuallySelected = isSelected && !isSkipped;
                           const isActive = matchingActiveTab === key;
+
+                          let dotColor = '#edf2f1';
+                          if (isActive) dotColor = 'var(--primary-color)';
+                          else if (isActuallySelected) dotColor = '#1b874c';
+                          else if (isSkipped) dotColor = '#8c9e9b';
+
                           return (
                             <li key={key}>
-                              <button 
+                              <button
                                 className={`scrollspy-item ${isActive ? 'active' : ''}`}
                                 onClick={() => setMatchingActiveTab(key)}
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '3px 0', cursor: 'pointer' }}
+                                style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '6px 0', cursor: 'pointer' }}
                               >
-                                <span className={`scrollspy-dot ${isActive ? 'active' : ''}`} style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isActive ? 'var(--primary-color)' : '#cddbd8', display: 'inline-block', marginRight: '6px' }}></span>
-                                {isSelected && (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--primary-color)', marginRight: '2px' }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                      <polyline points="20 6 9 17 4 12"></polyline>
-                                    </svg>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: dotColor, display: 'inline-block', marginTop: '6px', flexShrink: 0 }}></span>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                  <span style={{
+                                    fontSize: '14px',
+                                    fontWeight: isActive || isActuallySelected ? '600' : '500',
+                                    color: isActive ? 'var(--primary-color)' : isActuallySelected ? '#1b874c' : isSkipped ? '#8c9e9b' : 'var(--text-gray)'
+                                  }}>
+                                    {providerData[key].title}
                                   </span>
-                                )}
-                                <span style={{ fontSize: '11.5px', fontWeight: isActive ? '600' : '400', color: isActive ? 'var(--text-dark)' : 'var(--text-gray)' }}>
-                                  {providerData[key].title}
-                                </span>
+                                  {isActuallySelected && (
+                                    <span style={{ fontSize: '11px', color: '#1b874c', marginTop: '2px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                      <span style={{ display: 'inline-block', width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#1b874c' }}></span>
+                                      Selected: {selectionValue}
+                                    </span>
+                                  )}
+                                  {isSkipped && (
+                                    <span style={{ fontSize: '10px', color: '#8c9e9b', marginTop: '2px', fontWeight: '600', backgroundColor: '#eef2f1', padding: '1px 5px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                                      Skipped
+                                    </span>
+                                  )}
+                                </div>
                               </button>
                             </li>
                           );
@@ -1759,700 +1822,831 @@ function App() {
                           Based on your location and needs, here are our top matches:
                         </p>
 
-                      <div className="recommendations-list">
-                        {currentTabInfo.recommendations.map((doc, index) => {
-                          const isExpanded = expandedProviders[doc.id];
-                          const isSelected = selectedProviders[matchingActiveTab] === doc.name;
+                        <div className="recommendations-list">
+                          {currentTabInfo.recommendations.map((doc, index) => {
+                            const isExpanded = expandedProviders[doc.id];
+                            const isSelected = selectedProviders[matchingActiveTab] === doc.name;
 
-                          return (
-                            <div key={doc.id} className={`matching-recom-card ${isSelected ? 'selected' : ''}`}>
-                              {index === 0 && (
-                                <div className="matching-top-match-badge">Top Match</div>
-                              )}
+                            return (
+                              <div key={doc.id} className={`matching-recom-card ${isSelected ? 'selected' : ''}`}>
+                                {index === 0 && (
+                                  <div className="matching-top-match-badge">Top Match</div>
+                                )}
 
-                              <div className="matching-avatar-circle">
-                                {doc.initials}
-                              </div>
+                                <div className="matching-avatar-circle">
+                                  {doc.initials}
+                                </div>
 
-                              <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                  <h3 className="matching-doc-name">{doc.name}</h3>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '700', color: '#b38600' }}>
-                                    <span>★</span>
-                                    <span>{doc.rating}</span>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <h3 className="matching-doc-name">{doc.name}</h3>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '700', color: '#b38600' }}>
+                                      <span>★</span>
+                                      <span>{doc.rating}</span>
+                                    </div>
                                   </div>
-                                </div>
 
-                                <div className="matching-meta-badges">
-                                  <span className="matching-role-badge">{doc.role}</span>
-                                  <span className={`matching-avail-badge ${doc.availType}`}>
-                                    {doc.availability}
-                                  </span>
-                                </div>
+                                  <div className="matching-meta-badges">
+                                    <span className="matching-role-badge">{doc.role}</span>
+                                    <span className={`matching-avail-badge ${doc.availType}`}>
+                                      {doc.availability}
+                                    </span>
+                                  </div>
 
-                                <div className="matching-location-info">
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                      <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path>
-                                      <circle cx="12" cy="10" r="3"></circle>
-                                    </svg>
-                                    {doc.location}
-                                  </span>
-                                </div>
+                                  <div className="matching-location-info">
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                      </svg>
+                                      {doc.location}
+                                    </span>
+                                  </div>
 
-                                <p className="matching-doc-desc">
-                                  {doc.desc}
-                                </p>
+                                  <p className="matching-doc-desc">
+                                    {doc.desc}
+                                  </p>
 
-                                <div className="matching-card-actions">
-                                  <button
-                                    className={`matching-select-btn ${isSelected ? 'selected' : ''}`}
-                                    onClick={() => handleSelectProvider(matchingActiveTab, doc.name)}
-                                  >
-                                    {isSelected ? 'Selected' : 'Select Provider'}
-                                  </button>
-
-                                  <button
-                                    className="matching-more-info-btn"
-                                    onClick={() => setExpandedProviders(prev => ({ ...prev, [doc.id]: !prev[doc.id] }))}
-                                  >
-                                    {isExpanded ? 'Less Info' : 'More Info'}
-                                    <svg 
-                                      style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} 
-                                      xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                                  <div className="matching-card-actions">
+                                    <button
+                                      className={`matching-select-btn ${isSelected ? 'selected' : ''}`}
+                                      onClick={() => handleSelectProvider(matchingActiveTab, doc.name)}
                                     >
-                                      <polyline points="6 9 12 15 18 9"></polyline>
-                                    </svg>
-                                  </button>
-                                </div>
+                                      {isSelected ? 'Selected' : 'Select Provider'}
+                                    </button>
 
-                                {/* Collapsible detail drawer */}
-                                {isExpanded && (
-                                  <div className="matching-detail-drawer">
-                                    <div className="matching-detail-section">
-                                      <span className="matching-detail-label">Contact Information</span>
-                                      <span className="matching-detail-val">📞 {doc.phone}</span>
-                                      <span className="matching-detail-val">✉️ {doc.email}</span>
-                                    </div>
-                                    <div className="matching-detail-section">
-                                      <span className="matching-detail-label">Credentials</span>
-                                      {doc.credentials.map((cred, i) => (
-                                        <span key={i} className="matching-detail-val">• {cred}</span>
-                                      ))}
-                                    </div>
-                                    <div className="matching-detail-section" style={{ gridColumn: 'span 2' }}>
-                                      <span className="matching-detail-label">Experience</span>
-                                      <span className="matching-detail-val">{doc.exp}</span>
-                                    </div>
-                                    <div className="matching-detail-section" style={{ gridColumn: 'span 2' }}>
-                                      <span className="matching-detail-label">Areas of Focus</span>
-                                      <div className="matching-detail-pill-grid">
-                                        {doc.focus.map((f, i) => (
-                                          <span key={i} className="matching-detail-pill">{f}</span>
+                                    <button
+                                      className="matching-more-info-btn"
+                                      onClick={() => setExpandedProviders(prev => ({ ...prev, [doc.id]: !prev[doc.id] }))}
+                                    >
+                                      {isExpanded ? 'Less Info' : 'More Info'}
+                                      <svg
+                                        style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
+                                        xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                                      >
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                      </svg>
+                                    </button>
+                                  </div>
+
+                                  {/* Collapsible detail drawer */}
+                                  {isExpanded && (
+                                    <div className="matching-detail-drawer">
+                                      <div className="matching-detail-section">
+                                        <span className="matching-detail-label">Contact Information</span>
+                                        <span className="matching-detail-val">📞 {doc.phone}</span>
+                                        <span className="matching-detail-val">✉️ {doc.email}</span>
+                                      </div>
+                                      <div className="matching-detail-section">
+                                        <span className="matching-detail-label">Credentials</span>
+                                        {doc.credentials.map((cred, i) => (
+                                          <span key={i} className="matching-detail-val">• {cred}</span>
                                         ))}
                                       </div>
+                                      <div className="matching-detail-section" style={{ gridColumn: 'span 2' }}>
+                                        <span className="matching-detail-label">Experience</span>
+                                        <span className="matching-detail-val">{doc.exp}</span>
+                                      </div>
+                                      <div className="matching-detail-section" style={{ gridColumn: 'span 2' }}>
+                                        <span className="matching-detail-label">Areas of Focus</span>
+                                        <div className="matching-detail-pill-grid">
+                                          {doc.focus.map((f, i) => (
+                                            <span key={i} className="matching-detail-pill">{f}</span>
+                                          ))}
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
 
-                      {/* Matching Action button row bottom */}
-                      <div className="matching-action-row-bottom">
-                        <button
-                          className={`matching-primary-cta ${selectedProviders[matchingActiveTab] && selectedProviders[matchingActiveTab] !== 'Skipped' ? 'active' : ''}`}
-                          disabled={!selectedProviders[matchingActiveTab] || selectedProviders[matchingActiveTab] === 'Skipped'}
-                          onClick={() => {
-                            if (matchingActiveTab === 'memory') setMatchingActiveTab('home');
-                            else if (matchingActiveTab === 'home') setMatchingActiveTab('geriatric');
-                            else if (matchingActiveTab === 'geriatric') setMatchingActiveTab('group');
-                            else setNavigatorScreen('PLAN');
-                          }}
-                        >
-                          {matchingActiveTab === 'group' ? 'Build My Care Plan' : 'Continue to Next Provider Type'}
-                        </button>
-                        <button
-                          className="matching-secondary-cta"
-                          onClick={() => {
-                            if (matchingActiveTab === 'memory') setMatchingActiveTab('home');
-                            else if (matchingActiveTab === 'home') setMatchingActiveTab('geriatric');
-                            else if (matchingActiveTab === 'geriatric') setMatchingActiveTab('group');
-                            else setNavigatorScreen('PLAN');
-                          }}
-                        >
-                          Skip This Provider Type
-                        </button>
+                        {/* Matching Action button row bottom */}
+                        <div className="matching-action-row-bottom">
+                          <button
+                            className={`matching-primary-cta ${selectedProviders[matchingActiveTab] && selectedProviders[matchingActiveTab] !== 'Skipped' ? 'active' : ''}`}
+                            disabled={!selectedProviders[matchingActiveTab] || selectedProviders[matchingActiveTab] === 'Skipped'}
+                            onClick={() => {
+                              if (matchingActiveTab === 'memory') setMatchingActiveTab('home');
+                              else if (matchingActiveTab === 'home') setMatchingActiveTab('geriatric');
+                              else if (matchingActiveTab === 'geriatric') setMatchingActiveTab('group');
+                              else setNavigatorScreen('PLAN');
+                            }}
+                          >
+                            {matchingActiveTab === 'group' ? 'Build My Care Plan' : 'Continue to Next Provider Type'}
+                          </button>
+                          <button
+                            className="matching-secondary-cta"
+                            onClick={() => {
+                              setSelectedProviders(prev => ({ ...prev, [matchingActiveTab]: 'Skipped' }));
+                              if (matchingActiveTab === 'memory') setMatchingActiveTab('home');
+                              else if (matchingActiveTab === 'home') setMatchingActiveTab('geriatric');
+                              else if (matchingActiveTab === 'geriatric') setMatchingActiveTab('group');
+                              else setNavigatorScreen('PLAN');
+                            }}
+                          >
+                            Skip This Provider Type
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-          );
-        })()
+              );
+            })()
           ) : (
             /* STEP 5: CARE PLAN SCREEN */
             <div style={{ width: '100%', animation: 'fadeIn 0.5s ease', fontFamily: 'Outfit, sans-serif' }}>
-              {/* Header */}
-              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '16px', marginBottom: '24px' }}>
-                <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#2c5e59', margin: '0 0 4px 0' }}>
-                  Let's address your care needs
-                </h1>
-                <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-                  Home Transition for Eleanor
-                </p>
-              </div>
-
-              {/* Banner Info Card */}
-              <div style={{
-                background: '#ffffff',
-                borderRadius: '16px',
-                padding: '24px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
-                marginBottom: '24px',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  position: 'absolute',
-                  top: '-50px',
-                  right: '-50px',
-                  width: '150px',
-                  height: '150px',
-                  background: 'rgba(61, 120, 114, 0.03)',
-                  borderRadius: '50%'
-                }}></div>
-                <p style={{ fontSize: '13px', color: '#334155', lineHeight: '1.7', margin: '0 0 12px 0' }}>
-                  Every aspect of your care is important. Based on your specific situation, bQuest has curated a list of certified Service Providers and educational resources just for you.
-                </p>
-                <p style={{ fontSize: '13px', color: '#334155', lineHeight: '1.7', margin: 0 }}>
-                  We've selected a <strong>Primary Specialist</strong> that we suggest connecting with first. Feel free to connect with them or any of the other providers below when you are ready, or just learn more about what they do.
-                </p>
-              </div>
-
-              {/* Action Buttons Row */}
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '32px', flexWrap: 'wrap' }}>
-                <button style={{
-                  backgroundColor: '#3d7872',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '8px 16px',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 9.73v9.19z"></path>
-                  </svg>
-                  Contact Primary Specialist
-                </button>
-                <button style={{
-                  backgroundColor: '#ffffff',
-                  color: '#3d7872',
-                  border: '1px solid #3d7872',
-                  borderRadius: '6px',
-                  padding: '8px 16px',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}>
-                  Download Care Plan
-                </button>
-                <button style={{
-                  backgroundColor: '#ffffff',
-                  color: '#3d7872',
-                  border: '1px solid #3d7872',
-                  borderRadius: '6px',
-                  padding: '8px 16px',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}>
-                  Request Concierge Support
-                </button>
-              </div>
-
-              {/* Primary Need Heading & Card */}
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ marginBottom: '10px' }}>
-                  <span style={{
-                    backgroundColor: '#f55b14',
-                    color: '#ffffff',
-                    fontSize: '9.5px',
-                    fontWeight: '700',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    display: 'inline-block'
-                  }}>
-                    Primary Need
-                  </span>
-                </div>
-
-                <div style={{
-                  background: '#ffffff',
-                  border: '1px solid #ccdcd9',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
-                }}>
-                  <div style={{
-                    backgroundColor: '#4d827a',
-                    padding: '10px 16px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '700' }}>Memory Care Specialist</span>
-                    <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '600', cursor: 'pointer', opacity: 0.9 }}>Learn More</span>
+              <div className="journey-layout-three-col">
+                <div className="planner-workspace-card">
+                  {/* Left Column: Sidebar list of sections */}
+                  <div className="workspace-sidebar">
+                    <span className="scrollspy-title" style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px', display: 'block', textTransform: 'none', letterSpacing: 'normal' }}>Care Plan Sections</span>
+                    <ul className="scrollspy-list" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px', listStyle: 'none', padding: '0' }}>
+                      <li>
+                        <button 
+                          className={`scrollspy-item ${activeCarePlanSection === 'plan-overview' ? 'active' : ''}`}
+                          onClick={() => scrollToSection('plan-overview')}
+                        >
+                          <span className="scrollspy-dot"></span>
+                          Overview & Summary
+                        </button>
+                      </li>
+                      <li>
+                        <button 
+                          className={`scrollspy-item ${['plan-team', 'plan-team-memory', 'plan-team-home', 'plan-team-coord', 'plan-team-support'].includes(activeCarePlanSection) ? 'active' : ''}`}
+                          onClick={() => scrollToSection('section-plan-team')}
+                        >
+                          <span className="scrollspy-dot"></span>
+                          Your Care Team
+                        </button>
+                        <ul className="scrollspy-sub-list" style={{ animation: 'fadeIn 0.3s ease', listStyle: 'none', paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '1.5px solid #edf2f1', marginTop: '8px' }}>
+                          <li>
+                            <button
+                              className={`scrollspy-sub-item ${activeCarePlanSection === 'plan-team-memory' ? 'active' : ''}`}
+                              onClick={() => scrollToSection('sub-memory')}
+                            >
+                              <span className="scrollspy-sub-dot"></span>
+                              Memory Care Specialist
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              className={`scrollspy-sub-item ${activeCarePlanSection === 'plan-team-home' ? 'active' : ''}`}
+                              onClick={() => scrollToSection('sub-home')}
+                            >
+                              <span className="scrollspy-sub-dot"></span>
+                              Home Health Care
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              className={`scrollspy-sub-item ${activeCarePlanSection === 'plan-team-coord' ? 'active' : ''}`}
+                              onClick={() => scrollToSection('sub-coord')}
+                            >
+                              <span className="scrollspy-sub-dot"></span>
+                              Care Coordination
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              className={`scrollspy-sub-item ${activeCarePlanSection === 'plan-team-support' ? 'active' : ''}`}
+                              onClick={() => scrollToSection('sub-support')}
+                            >
+                              <span className="scrollspy-sub-dot"></span>
+                              Support Services
+                            </button>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
                   </div>
-                  <div style={{ padding: '20px 24px' }}>
-                    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-                      <div style={{
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '50%',
-                        backgroundColor: '#386862',
-                        color: '#ffffff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: '700',
-                        fontSize: '13px'
-                      }}>
-                        DP
+
+                  {/* Right Column: Content area */}
+                  <div className="workspace-content">
+                    {/* SECTION 1: OVERVIEW */}
+                    <div id="section-plan-overview" style={{ paddingBottom: '32px', borderBottom: '1px solid #edf2f1' }}>
+                      {/* Header */}
+                      <div style={{ paddingBottom: '16px', marginBottom: '24px' }}>
+                        <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#0d1e2d', margin: '0 0 4px 0' }}>
+                          Let's address your care needs
+                        </h1>
+                        <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                          Home Transition for Eleanor
+                        </p>
                       </div>
-                      <div>
-                        <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b', margin: '0 0 2px 0' }}>Dr. Patricia Chen</h3>
-                        <p style={{ fontSize: '11.5px', color: '#64748b', margin: '0 0 4px 0' }}>Neurologist & Memory Care Specialist</p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontSize: '12px', fontWeight: '700' }}>
-                          ★ <span style={{ color: '#475569' }}>4.9</span>
+
+                      {/* Banner Info Card */}
+                      <div style={{
+                        background: '#ffffff',
+                        borderRadius: '16px',
+                        padding: '24px',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+                        marginBottom: '24px',
+                        position: 'relative',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          position: 'absolute',
+                          top: '-50px',
+                          right: '-50px',
+                          width: '150px',
+                          height: '150px',
+                          background: 'rgba(61, 120, 114, 0.03)',
+                          borderRadius: '50%'
+                        }}></div>
+                        <p style={{ fontSize: '13px', color: '#334155', lineHeight: '1.7', margin: '0 0 12px 0' }}>
+                          Every aspect of your care is important. Based on your specific situation, bQuest has curated a list of certified Service Providers and educational resources just for you.
+                        </p>
+                        <p style={{ fontSize: '13px', color: '#334155', lineHeight: '1.7', margin: 0 }}>
+                          We've selected a <strong>Primary Specialist</strong> that we suggest connecting with first. Feel free to connect with them or any of the other providers below when you are ready, or just learn more about what they do.
+                        </p>
+                      </div>
+
+                      {/* Action Buttons Row */}
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        <button style={{
+                          backgroundColor: '#3d7872',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '8px 16px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s'
+                        }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 9.73v9.19z"></path>
+                          </svg>
+                          Contact Primary Specialist
+                        </button>
+                        <button style={{
+                          backgroundColor: '#ffffff',
+                          color: '#3d7872',
+                          border: '1px solid #3d7872',
+                          borderRadius: '6px',
+                          padding: '8px 16px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}>
+                          Download Care Plan
+                        </button>
+                        <button style={{
+                          backgroundColor: '#ffffff',
+                          color: '#3d7872',
+                          border: '1px solid #3d7872',
+                          borderRadius: '6px',
+                          padding: '8px 16px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}>
+                          Request Concierge Support
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* SECTION 2: CARE TEAM */}
+                    <div id="section-plan-team" style={{ paddingTop: '32px' }}>
+                      {/* Primary Need Heading & Card */}
+                      <div style={{ marginBottom: '24px' }}>
+                        <div style={{ marginBottom: '10px' }}>
+                          <span style={{
+                            backgroundColor: '#f55b14',
+                            color: '#ffffff',
+                            fontSize: '9.5px',
+                            fontWeight: '700',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            display: 'inline-block'
+                          }}>
+                            Primary Need
+                          </span>
+                        </div>
+
+                        <div id="sub-memory" style={{
+                          background: '#ffffff',
+                          border: '1px solid #ccdcd9',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                        }}>
+                          <div style={{
+                            backgroundColor: '#4d827a',
+                            padding: '10px 16px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '700' }}>Memory Care Specialist</span>
+                            <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '600', cursor: 'pointer', opacity: 0.9 }}>Learn More</span>
+                          </div>
+                          <div style={{ padding: '20px 24px' }}>
+                            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                              <div style={{
+                                width: '44px',
+                                height: '44px',
+                                borderRadius: '50%',
+                                backgroundColor: '#386862',
+                                color: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: '700',
+                                fontSize: '13px'
+                              }}>
+                                DP
+                              </div>
+                              <div>
+                                <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b', margin: '0 0 2px 0' }}>Dr. Patricia Chen</h3>
+                                <p style={{ fontSize: '11.5px', color: '#64748b', margin: '0 0 4px 0' }}>Neurologist & Memory Care Specialist</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontSize: '12px', fontWeight: '700' }}>
+                                  ★ <span style={{ color: '#475569' }}>4.9</span>
+                                </div>
+                              </div>
+                            </div>
+                            <p style={{ fontSize: '12px', color: '#475569', lineHeight: '1.6', margin: '0 0 16px 0' }}>
+                              Memory care specialists provide crucial medical expertise in diagnosing and managing Alzheimer's and related dementias. They can prescribe medications, monitor disease progression, and adjust treatment plans as your loved one's needs evolve.
+                            </p>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button style={{
+                                backgroundColor: '#ffffff',
+                                color: '#3d7872',
+                                border: '1px solid #3d7872',
+                                borderRadius: '6px',
+                                padding: '6px 14px',
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                cursor: 'pointer'
+                              }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                Message
+                              </button>
+                              <button style={{
+                                backgroundColor: '#3d7872',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '6px 14px',
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                cursor: 'pointer'
+                              }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 9.73v9.19z"></path>
+                                </svg>
+                                Schedule Call
+                              </button>
+                              <button style={{
+                                backgroundColor: '#ffffff',
+                                color: '#3d7872',
+                                border: '1px solid #3d7872',
+                                borderRadius: '6px',
+                                padding: '6px 14px',
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}>
+                                View Profile
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Other Providers Grid */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        {/* Home Health Care Card */}
+                        <div id="sub-home" style={{
+                          background: '#ffffff',
+                          border: '1px solid #ccdcd9',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                        }}>
+                          <div style={{
+                            backgroundColor: '#4d827a',
+                            padding: '10px 16px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '700' }}>Home Health Care</span>
+                            <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '600', cursor: 'pointer', opacity: 0.9 }}>close</span>
+                          </div>
+                          <div style={{ padding: '20px 24px' }}>
+                            <p style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.6', margin: '0 0 8px 0' }}>
+                              Professional home care providers ensure your loved one receives consistent, compassionate assistance with daily activities while remaining in the comfort of their own home. These services help maintain quality of life and can delay or prevent the need for institutional care.
+                            </p>
+                            <a href="#" style={{ fontSize: '11.5px', color: '#3d7872', fontWeight: '600', textDecoration: 'none', display: 'block', marginBottom: '16px' }}>
+                              Learn more about this type of specialist &rarr;
+                            </a>
+
+                            <div style={{ borderTop: '1px solid #edf2f1', paddingTop: '16px', marginTop: '16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Matched Provider</span>
+                                <span style={{ backgroundColor: '#e6f7ed', color: '#1b874c', fontSize: '9px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>Top Match</span>
+                              </div>
+
+                              <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
+                                <div style={{
+                                  width: '44px',
+                                  height: '44px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#386862',
+                                  color: '#ffffff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: '700',
+                                  fontSize: '13px',
+                                  flexShrink: 0
+                                }}>
+                                  CH
+                                </div>
+                                <div>
+                                  <h3 style={{ fontSize: '13.5px', fontWeight: '700', color: '#1e293b', margin: '0 0 2px 0' }}>ComfortCare Home Services</h3>
+                                  <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0' }}>In-Home Personal Care Provider</p>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontSize: '11.5px', fontWeight: '700' }}>
+                                    ★ <span style={{ color: '#475569' }}>4.7</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <p style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.6', margin: '0 0 12px 0' }}>
+                                Comprehensive home care services available 24/7 with highly trained caregivers specialized in dementia care. Services include personal care, medication reminders, meal preparation, and companionship.
+                              </p>
+
+                              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                                <button style={{
+                                  backgroundColor: '#ffffff',
+                                  color: '#3d7872',
+                                  border: '1px solid #3d7872',
+                                  borderRadius: '6px',
+                                  padding: '6px 14px',
+                                  fontSize: '11px',
+                                  fontWeight: '600',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer'
+                                }}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                  </svg>
+                                  Message
+                                </button>
+                                <button style={{
+                                  backgroundColor: '#3d7872',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  padding: '6px 14px',
+                                  fontSize: '11px',
+                                  fontWeight: '600',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer'
+                                }}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 9.73v9.19z"></path>
+                                  </svg>
+                                  Schedule Call
+                                </button>
+                              </div>
+
+                              <a href="#" style={{ fontSize: '11px', color: '#3d7872', fontWeight: '600', textDecoration: 'none' }}>
+                                View 1 More Options...
+                              </a>
+                            </div>
+
+                            <div style={{ borderTop: '1px solid #edf2f1', paddingTop: '16px', marginTop: '16px' }}>
+                              <h4 style={{ fontSize: '11px', fontWeight: '750', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 12px 0' }}>Key Resources</h4>
+                              <div style={{ display: 'flex', gap: '12px', backgroundColor: '#fcfcfc', border: '1px solid #edf4f3', borderRadius: '8px', padding: '12px 16px', alignItems: 'flex-start' }}>
+                                <span style={{ fontSize: '16px' }}>📖</span>
+                                <div>
+                                  <span style={{ backgroundColor: '#fff5f0', color: '#f55b14', fontSize: '9px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase', display: 'inline-block', marginBottom: '6px' }}>Shared Guide</span>
+                                  <h5 style={{ fontSize: '12.5px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>Creating a Safe Home Environment</h5>
+                                  <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 8px 0', lineHeight: '1.4' }}>Practical modifications and safety resources for dementia care at home.</p>
+                                  <a href="#" style={{ fontSize: '11px', color: '#3d7872', fontWeight: '600', textDecoration: 'none' }}>Read guide &rarr;</a>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Care Coordination Card */}
+                        <div id="sub-coord" style={{
+                          background: '#ffffff',
+                          border: '1px solid #ccdcd9',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                        }}>
+                          <div style={{
+                            backgroundColor: '#4d827a',
+                            padding: '10px 16px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '700' }}>Care Coordination</span>
+                            <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '600', cursor: 'pointer', opacity: 0.9 }}>close</span>
+                          </div>
+                          <div style={{ padding: '20px 24px' }}>
+                            <p style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.6', margin: '0 0 8px 0' }}>
+                              Care managers serve as your advocate and guide through the complex healthcare system, helping coordinate multiple providers and services. They can save you countless hours of research and phone calls while ensuring nothing falls through the cracks.
+                            </p>
+                            <a href="#" style={{ fontSize: '11.5px', color: '#3d7872', fontWeight: '600', textDecoration: 'none', display: 'block', marginBottom: '16px' }}>
+                              Learn more about this type of specialist &rarr;
+                            </a>
+
+                            <div style={{ borderTop: '1px solid #edf2f1', paddingTop: '16px', marginTop: '16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Matched Provider</span>
+                                <span style={{ backgroundColor: '#e6f7ed', color: '#1b874c', fontSize: '9px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>Top Match</span>
+                              </div>
+
+                              <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
+                                <div style={{
+                                  width: '44px',
+                                  height: '44px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#386862',
+                                  color: '#ffffff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: '700',
+                                  fontSize: '13px',
+                                  flexShrink: 0
+                                }}>
+                                  SW
+                                </div>
+                                <div>
+                                  <h3 style={{ fontSize: '13.5px', fontWeight: '700', color: '#1e293b', margin: '0 0 2px 0' }}>Sarah Williams, RN, CMC</h3>
+                                  <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0' }}>Certified Care Manager</p>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontSize: '11.5px', fontWeight: '700' }}>
+                                    ★ <span style={{ color: '#475569' }}>5</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <p style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.6', margin: '0 0 12px 0' }}>
+                                Registered nurse with expertise in complex care coordination and advocacy. Helps families navigate healthcare systems, coordinate multiple providers, and plan for changing needs.
+                              </p>
+
+                              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                                <button style={{
+                                  backgroundColor: '#ffffff',
+                                  color: '#3d7872',
+                                  border: '1px solid #3d7872',
+                                  borderRadius: '6px',
+                                  padding: '6px 14px',
+                                  fontSize: '11px',
+                                  fontWeight: '600',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer'
+                                }}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                  </svg>
+                                  Message
+                                </button>
+                                <button style={{
+                                  backgroundColor: '#3d7872',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  padding: '6px 14px',
+                                  fontSize: '11px',
+                                  fontWeight: '600',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer'
+                                }}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 9.73v9.19z"></path>
+                                  </svg>
+                                  Schedule Call
+                                </button>
+                              </div>
+                            </div>
+
+                            <div style={{ borderTop: '1px solid #edf2f1', paddingTop: '16px', marginTop: '16px' }}>
+                              <h4 style={{ fontSize: '11px', fontWeight: '750', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 12px 0' }}>Key Focus areas</h4>
+                              <div style={{ display: 'flex', gap: '12px', backgroundColor: '#fcfcfc', border: '1px solid #edf4f3', borderRadius: '8px', padding: '12px 16px', alignItems: 'flex-start' }}>
+                                <span style={{ fontSize: '16px' }}>📖</span>
+                                <div>
+                                  <span style={{ backgroundColor: '#fff5f0', color: '#f55b14', fontSize: '9px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase', display: 'inline-block', marginBottom: '6px' }}>Shared Guide</span>
+                                  <h5 style={{ fontSize: '12.5px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>Legal and Financial Planning Guide</h5>
+                                  <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 8px 0', lineHeight: '1.4' }}>Essential elements and planning considerations for long-term care.</p>
+                                  <a href="#" style={{ fontSize: '11px', color: '#3d7872', fontWeight: '600', textDecoration: 'none' }}>Read guide &rarr;</a>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Support Services Card */}
+                        <div id="sub-support" style={{
+                          background: '#ffffff',
+                          border: '1px solid #ccdcd9',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                        }}>
+                          <div style={{
+                            backgroundColor: '#4d827a',
+                            padding: '10px 16px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '700' }}>Support Services</span>
+                            <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '600', cursor: 'pointer', opacity: 0.9 }}>close</span>
+                          </div>
+                          <div style={{ padding: '20px 24px' }}>
+                            <p style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.6', margin: '0 0 8px 0' }}>
+                              Caregiver support services provide essential emotional support and practical guidance to help you navigate the challenges of caring for a loved one. Connecting with others who understand your experience can reduce stress, prevent burnout, and help you be a better caregiver.
+                            </p>
+                            <a href="#" style={{ fontSize: '11.5px', color: '#3d7872', fontWeight: '600', textDecoration: 'none', display: 'block', marginBottom: '16px' }}>
+                              Learn more about this type of specialist &rarr;
+                            </a>
+
+                            <div style={{ borderTop: '1px solid #edf2f1', paddingTop: '16px', marginTop: '16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Matched Provider</span>
+                                <span style={{ backgroundColor: '#e6f7ed', color: '#1b874c', fontSize: '9px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>Top Match</span>
+                              </div>
+
+                              <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
+                                <div style={{
+                                  width: '44px',
+                                  height: '44px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#386862',
+                                  color: '#ffffff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: '700',
+                                  fontSize: '13px',
+                                  flexShrink: 0
+                                }}>
+                                  AA
+                                </div>
+                                <div>
+                                  <h3 style={{ fontSize: '13.5px', fontWeight: '700', color: '#1e293b', margin: '0 0 2px 0' }}>Alzheimer's Association Colorado</h3>
+                                  <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0' }}>Caregiver Support & Education</p>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontSize: '11.5px', fontWeight: '700' }}>
+                                    ★ <span style={{ color: '#475569' }}>4.9</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <p style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.6', margin: '0 0 12px 0' }}>
+                                Free support groups, education programs, and 24/7 helpline for caregivers. Offers both in-person and virtual support groups led by trained facilitators.
+                              </p>
+
+                              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                                <button style={{
+                                  backgroundColor: '#ffffff',
+                                  color: '#3d7872',
+                                  border: '1px solid #3d7872',
+                                  borderRadius: '6px',
+                                  padding: '6px 14px',
+                                  fontSize: '11px',
+                                  fontWeight: '600',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer'
+                                }}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                  </svg>
+                                  Message
+                                </button>
+                                <button style={{
+                                  backgroundColor: '#3d7872',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  padding: '6px 14px',
+                                  fontSize: '11px',
+                                  fontWeight: '600',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer'
+                                }}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 9.73v9.19z"></path>
+                                  </svg>
+                                  Schedule Call
+                                </button>
+                              </div>
+
+                              <a href="#" style={{ fontSize: '11px', color: '#3d7872', fontWeight: '600', textDecoration: 'none' }}>
+                                View 1 More Options...
+                              </a>
+                            </div>
+
+                            <div style={{ borderTop: '1px solid #edf2f1', paddingTop: '16px', marginTop: '16px' }}>
+                              <h4 style={{ fontSize: '11px', fontWeight: '750', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 12px 0' }}>Key Resources</h4>
+                              <div style={{ display: 'flex', gap: '12px', backgroundColor: '#fcfcfc', border: '1px solid #edf4f3', borderRadius: '8px', padding: '12px 16px', alignItems: 'flex-start' }}>
+                                <span style={{ fontSize: '16px' }}>📖</span>
+                                <div>
+                                  <span style={{ backgroundColor: '#fff5f0', color: '#f55b14', fontSize: '9px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase', display: 'inline-block', marginBottom: '6px' }}>Shared Guide</span>
+                                  <h5 style={{ fontSize: '12.5px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>Caregiver Self-Care Strategies</h5>
+                                  <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 8px 0', lineHeight: '1.4' }}>Tips for maintaining your own health and wellbeing while caregiving.</p>
+                                  <a href="#" style={{ fontSize: '11px', color: '#3d7872', fontWeight: '600', textDecoration: 'none' }}>Read guide &rarr;</a>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                    <p style={{ fontSize: '12px', color: '#475569', lineHeight: '1.6', margin: '0 0 16px 0' }}>
-                      Memory care specialists provide crucial medical expertise in diagnosing and managing Alzheimer's and related dementias. They can prescribe medications, monitor disease progression, and adjust treatment plans as your loved one's needs evolve.
-                    </p>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button style={{
-                        backgroundColor: '#ffffff',
-                        color: '#3d7872',
-                        border: '1px solid #3d7872',
-                        borderRadius: '6px',
-                        padding: '6px 14px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        cursor: 'pointer'
-                      }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                        </svg>
-                        Message
-                      </button>
-                      <button style={{
-                        backgroundColor: '#3d7872',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '6px 14px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        cursor: 'pointer'
-                      }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 9.73v9.19z"></path>
-                        </svg>
-                        Schedule Call
-                      </button>
-                      <button style={{
-                        backgroundColor: '#ffffff',
-                        color: '#3d7872',
-                        border: '1px solid #3d7872',
-                        borderRadius: '6px',
-                        padding: '6px 14px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        cursor: 'pointer'
-                      }}>
-                        View Profile
-                      </button>
-                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Other Providers Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-                {/* Home Health Care Card */}
-                <div style={{
-                  background: '#ffffff',
-                  border: '1px solid #ccdcd9',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
-                }}>
-                  <div style={{
-                    backgroundColor: '#4d827a',
-                    padding: '10px 16px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '700' }}>Home Health Care</span>
-                    <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '600', cursor: 'pointer', opacity: 0.9 }}>Learn More</span>
-                  </div>
-                  <div style={{ padding: '20px 24px' }}>
-                    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-                      <div style={{
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '50%',
-                        backgroundColor: '#386862',
-                        color: '#ffffff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: '700',
-                        fontSize: '13px'
-                      }}>
-                        CH
-                      </div>
-                      <div>
-                        <h3 style={{ fontSize: '13.5px', fontWeight: '700', color: '#1e293b', margin: '0 0 2px 0' }}>ComfortCare Home Services</h3>
-                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0' }}>In-Home Personal Care Provider</p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontSize: '11.5px', fontWeight: '700' }}>
-                          ★ <span style={{ color: '#475569' }}>4.7</span>
+                {/* Right Column: Essential Resources Sidebar Card */}
+                <div className="journey-right-sidebar">
+                  <div className="journey-right-card">
+                    <h2 className="resources-title" style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px' }}>Resources about your care stage</h2>
+                    <p className="resources-subtitle" style={{ fontSize: '12px', color: 'var(--text-gray)', lineHeight: '1.5', marginBottom: '16px' }}>
+                      Educational materials to help you understand and navigate your care journey.
+                    </p>
+
+                    <div className="resources-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {/* Resource 1 */}
+                      <a href="https://www.alz.org" target="_blank" rel="noopener noreferrer" className="resource-item-card" style={{ padding: '12px 16px' }}>
+                        <div className="resource-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span className="resource-name" style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-dark)' }}>Alzheimer's Association</span>
+                          <svg className="resource-link-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="7" y1="17" x2="17" y2="7"></line>
+                            <polyline points="7 7 17 7 17 17"></polyline>
+                          </svg>
                         </div>
-                      </div>
-                    </div>
-                    <p style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.6', margin: 0 }}>
-                      Professional home care providers ensure your loved one receives consistent, compassionate assistance with daily activities while remaining in the comfort of their own home. These services help maintain quality of life and can delay or prevent the need for institutional care.
-                    </p>
-                  </div>
-                </div>
+                        <p className="resource-desc" style={{ fontSize: '12px', color: 'var(--text-gray)', margin: '0 0 4px 0' }}>24/7 helpline and local support groups</p>
+                        <span className="resource-domain" style={{ fontSize: '11px', fontWeight: '600', color: 'var(--primary-color)' }}>alz.org</span>
+                      </a>
 
-                {/* Care Coordination Card */}
-                <div style={{
-                  background: '#ffffff',
-                  border: '1px solid #ccdcd9',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
-                }}>
-                  <div style={{
-                    backgroundColor: '#4d827a',
-                    padding: '10px 16px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '700' }}>Care Coordination</span>
-                    <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '600', cursor: 'pointer', opacity: 0.9 }}>Learn More</span>
-                  </div>
-                  <div style={{ padding: '20px 24px' }}>
-                    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-                      <div style={{
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '50%',
-                        backgroundColor: '#386862',
-                        color: '#ffffff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: '700',
-                        fontSize: '13px'
-                      }}>
-                        SW
-                      </div>
-                      <div>
-                        <h3 style={{ fontSize: '13.5px', fontWeight: '700', color: '#1e293b', margin: '0 0 2px 0' }}>Sarah Williams, RN, CMC</h3>
-                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0' }}>Certified Care Manager</p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontSize: '11.5px', fontWeight: '700' }}>
-                          ★ <span style={{ color: '#475569' }}>5</span>
+                      {/* Resource 2 */}
+                      <a href="https://www.caregiver.org" target="_blank" rel="noopener noreferrer" className="resource-item-card" style={{ padding: '12px 16px' }}>
+                        <div className="resource-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span className="resource-name" style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-dark)' }}>Family Caregiver Alliance</span>
+                          <svg className="resource-link-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="7" y1="17" x2="17" y2="7"></line>
+                            <polyline points="7 7 17 7 17 17"></polyline>
+                          </svg>
                         </div>
-                      </div>
-                    </div>
-                    <p style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.6', margin: 0 }}>
-                      Care managers serve as your advocate and guide through the complex healthcare system, helping coordinate multiple providers and services. They can save you countless hours of research and phone calls while ensuring nothing falls through the cracks.
-                    </p>
-                  </div>
-                </div>
+                        <p className="resource-desc" style={{ fontSize: '12px', color: 'var(--text-gray)', margin: '0 0 4px 0' }}>Education and state-by-state resources</p>
+                        <span className="resource-domain" style={{ fontSize: '11px', fontWeight: '600', color: 'var(--primary-color)' }}>caregiver.org</span>
+                      </a>
 
-                {/* Support Services Card */}
-                <div style={{
-                  background: '#ffffff',
-                  border: '1px solid #ccdcd9',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
-                }}>
-                  <div style={{
-                    backgroundColor: '#4d827a',
-                    padding: '10px 16px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '700' }}>Support Services</span>
-                    <span style={{ color: '#ffffff', fontSize: '11px', fontWeight: '600', cursor: 'pointer', opacity: 0.9 }}>Learn More</span>
-                  </div>
-                  <div style={{ padding: '20px 24px' }}>
-                    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-                      <div style={{
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '50%',
-                        backgroundColor: '#386862',
-                        color: '#ffffff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: '700',
-                        fontSize: '13px'
-                      }}>
-                        AA
-                      </div>
-                      <div>
-                        <h3 style={{ fontSize: '13.5px', fontWeight: '700', color: '#1e293b', margin: '0 0 2px 0' }}>Alzheimer's Association Colorado</h3>
-                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0' }}>Caregiver Support & Education</p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#fbbf24', fontSize: '11.5px', fontWeight: '700' }}>
-                          ★ <span style={{ color: '#475569' }}>4.9</span>
+                      {/* Resource 3 */}
+                      <a href="https://www.medicare.gov" target="_blank" rel="noopener noreferrer" className="resource-item-card" style={{ padding: '12px 16px' }}>
+                        <div className="resource-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span className="resource-name" style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-dark)' }}>Medicare</span>
+                          <svg className="resource-link-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="7" y1="17" x2="17" y2="7"></line>
+                            <polyline points="7 7 17 7 17 17"></polyline>
+                          </svg>
                         </div>
-                      </div>
-                    </div>
-                    <p style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.6', margin: 0 }}>
-                      Caregiver support services provide essential emotional support and practical guidance to help you navigate the challenges of caring for a loved one. Connecting with others who understand your experience can reduce stress, prevent burnout, and help you be a better caregiver.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Resources Section */}
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '32px', marginTop: '32px' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#2c5e59', margin: '0 0 6px 0' }}>
-                  Resources about your care stage
-                </h2>
-                <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 24px 0' }}>
-                  Educational materials to help you understand and navigate your care journey
-                </p>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-                  {/* Resource 1 */}
-                  <div style={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #edf4f3',
-                    borderRadius: '10px',
-                    padding: '20px',
-                    display: 'flex',
-                    gap: '14px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.01)'
-                  }}>
-                    <div style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      backgroundColor: '#ecf4f3',
-                      color: '#3d7872',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '16px',
-                      flexShrink: 0
-                    }}>
-                      📖
-                    </div>
-                    <div>
-                      <span style={{
-                        backgroundColor: '#f1f5f9',
-                        color: '#475569',
-                        fontSize: '9px',
-                        fontWeight: '700',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        display: 'inline-block',
-                        marginBottom: '8px'
-                      }}>
-                        Video Series
-                      </span>
-                      <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>
-                        Communication Techniques for Dementia
-                      </h3>
-                      <p style={{ fontSize: '11.5px', color: '#64748b', lineHeight: '1.5', margin: '0 0 12px 0' }}>
-                        Effective ways to connect and communicate as cognition changes
-                      </p>
-                      <a href="#" style={{ fontSize: '11.5px', color: '#3d7872', fontWeight: '600', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                        Access resource &rarr;
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* Resource 2 */}
-                  <div style={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #edf4f3',
-                    borderRadius: '10px',
-                    padding: '20px',
-                    display: 'flex',
-                    gap: '14px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.01)'
-                  }}>
-                    <div style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      backgroundColor: '#ecf4f3',
-                      color: '#3d7872',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '16px',
-                      flexShrink: 0
-                    }}>
-                      📖
-                    </div>
-                    <div>
-                      <span style={{
-                        backgroundColor: '#f1f5f9',
-                        color: '#475569',
-                        fontSize: '9px',
-                        fontWeight: '700',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        display: 'inline-block',
-                        marginBottom: '8px'
-                      }}>
-                        Guide
-                      </span>
-                      <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>
-                        Daily Routine Strategies
-                      </h3>
-                      <p style={{ fontSize: '11.5px', color: '#64748b', lineHeight: '1.5', margin: '0 0 12px 0' }}>
-                        Establishing structure and consistency for better quality of life
-                      </p>
-                      <a href="#" style={{ fontSize: '11.5px', color: '#3d7872', fontWeight: '600', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                        Access resource &rarr;
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* Resource 3 */}
-                  <div style={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #edf4f3',
-                    borderRadius: '10px',
-                    padding: '20px',
-                    display: 'flex',
-                    gap: '14px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.01)'
-                  }}>
-                    <div style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      backgroundColor: '#ecf4f3',
-                      color: '#3d7872',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '16px',
-                      flexShrink: 0
-                    }}>
-                      📖
-                    </div>
-                    <div>
-                      <span style={{
-                        backgroundColor: '#f1f5f9',
-                        color: '#475569',
-                        fontSize: '9px',
-                        fontWeight: '700',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        display: 'inline-block',
-                        marginBottom: '8px'
-                      }}>
-                        Resource
-                      </span>
-                      <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>
-                        Medicare & Insurance Navigator
-                      </h3>
-                      <p style={{ fontSize: '11.5px', color: '#64748b', lineHeight: '1.5', margin: '0 0 12px 0' }}>
-                        Understanding coverage for home care, medical equipment, and specialized services
-                      </p>
-                      <a href="#" style={{ fontSize: '11.5px', color: '#3d7872', fontWeight: '600', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                        Access resource &rarr;
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* Resource 4 */}
-                  <div style={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #edf4f3',
-                    borderRadius: '10px',
-                    padding: '20px',
-                    display: 'flex',
-                    gap: '14px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.01)'
-                  }}>
-                    <div style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      backgroundColor: '#ecf4f3',
-                      color: '#3d7872',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '16px',
-                      flexShrink: 0
-                    }}>
-                      📖
-                    </div>
-                    <div>
-                      <span style={{
-                        backgroundColor: '#f1f5f9',
-                        color: '#475569',
-                        fontSize: '9px',
-                        fontWeight: '700',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        display: 'inline-block',
-                        marginBottom: '8px'
-                      }}>
-                        Directory
-                      </span>
-                      <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>
-                        Support Group Finder
-                      </h3>
-                      <p style={{ fontSize: '11.5px', color: '#64748b', lineHeight: '1.5', margin: '0 0 12px 0' }}>
-                        Connect with other families navigating similar challenges
-                      </p>
-                      <a href="#" style={{ fontSize: '11.5px', color: '#3d7872', fontWeight: '600', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                        Access resource &rarr;
+                        <p className="resource-desc" style={{ fontSize: '12px', color: 'var(--text-gray)', margin: '0 0 4px 0' }}>Coverage for care services</p>
+                        <span className="resource-domain" style={{ fontSize: '11px', fontWeight: '600', color: 'var(--primary-color)' }}>medicare.gov</span>
                       </a>
                     </div>
                   </div>
                 </div>
               </div>
-
             </div>
           )
         ) : (
@@ -2490,7 +2684,7 @@ function App() {
             <button className="modal-close-btn" onClick={() => setShowNewPlanModal(false)}>&times;</button>
             <h3 className="modal-title">Start a New Care Plan</h3>
             <p className="modal-subtitle">Configure the parameters for the new Bequest Care Plan</p>
-            
+
             <form onSubmit={handleCreatePlan}>
               <div className="form-group">
                 <label className="form-label">Plan Name</label>
