@@ -236,26 +236,10 @@ function App() {
     if (activeTab !== 'NAVIGATOR' || (navigatorScreen !== 'JOURNEY' && navigatorScreen !== 'PROVIDERS' && navigatorScreen !== 'PLAN')) return;
 
     const handleScroll = () => {
-      const containerEl = document.querySelector('.workspace-content');
-      if (!containerEl) return;
       const isDesktop = window.innerWidth > 768;
-
-      const getStaticOffsetTop = (el) => {
-        if (!el) return 0;
-        let top = 0;
-        let current = el;
-        while (current && current !== containerEl && current !== document.body) {
-          top += current.offsetTop;
-          current = current.offsetParent;
-        }
-        return top;
-      };
-
       const getAbsoluteOffsetTop = (el) => el ? el.getBoundingClientRect().top + window.scrollY : 0;
 
-      let scrollPos = isDesktop
-        ? containerEl.scrollTop + (containerEl.clientHeight / 2)
-        : window.scrollY + (window.innerHeight / 2);
+      let scrollPos = window.scrollY + (window.innerHeight / 2);
 
       // PLAN (Step 5: Care Plan) Scrollspy
       if (navigatorScreen === 'PLAN') {
@@ -268,12 +252,12 @@ function App() {
 
         if (!overviewEl || !teamEl) return;
 
-        const overviewTop = getStaticOffsetTop(overviewEl);
-        const teamTop = getStaticOffsetTop(teamEl);
-        const subMemoryTop = subMemoryEl ? getStaticOffsetTop(subMemoryEl) : teamTop;
-        const subHomeTop = subHomeEl ? getStaticOffsetTop(subHomeEl) : teamTop;
-        const subCoordTop = subCoordEl ? getStaticOffsetTop(subCoordEl) : teamTop;
-        const subSupportTop = subSupportEl ? getStaticOffsetTop(subSupportEl) : teamTop;
+        const overviewTop = getAbsoluteOffsetTop(overviewEl);
+        const teamTop = getAbsoluteOffsetTop(teamEl);
+        const subMemoryTop = subMemoryEl ? getAbsoluteOffsetTop(subMemoryEl) : teamTop;
+        const subHomeTop = subHomeEl ? getAbsoluteOffsetTop(subHomeEl) : teamTop;
+        const subCoordTop = subCoordEl ? getAbsoluteOffsetTop(subCoordEl) : teamTop;
+        const subSupportTop = subSupportEl ? getAbsoluteOffsetTop(subSupportEl) : teamTop;
 
         if (subSupportEl && scrollPos >= subSupportTop) {
           setActiveCarePlanSection('plan-team-support');
@@ -301,11 +285,11 @@ function App() {
 
         if (!provGroupEl || !provHomeEl || !provGeriatricEl || !provMemoryEl) return;
 
-        const groupTop = getStaticOffsetTop(provGroupEl);
-        const homeTop = getStaticOffsetTop(provHomeEl);
-        const geriatricTop = getStaticOffsetTop(provGeriatricEl);
-        const memoryTop = getStaticOffsetTop(provMemoryEl);
-        const nextTop = provNextEl ? getStaticOffsetTop(provNextEl) : 99999;
+        const groupTop = getAbsoluteOffsetTop(provGroupEl);
+        const homeTop = getAbsoluteOffsetTop(provHomeEl);
+        const geriatricTop = getAbsoluteOffsetTop(provGeriatricEl);
+        const memoryTop = getAbsoluteOffsetTop(provMemoryEl);
+        const nextTop = provNextEl ? getAbsoluteOffsetTop(provNextEl) : 99999;
 
         if (scrollPos >= nextTop) {
           setActiveProviderSection('prov-next');
@@ -322,9 +306,9 @@ function App() {
         // Animate the vertical timeline connector progress fill line for the provider page
         const fillLine = document.querySelector('.providers-progress-fill-line');
         if (isDesktop && fillLine) {
-          const startOffset = groupTop - (containerEl.clientHeight / 2);
-          const endOffset = memoryTop - (containerEl.clientHeight / 2);
-          const currentScroll = containerEl.scrollTop;
+          const startOffset = groupTop - (window.innerHeight / 2);
+          const endOffset = memoryTop - (window.innerHeight / 2);
+          const currentScroll = window.scrollY;
 
           let progressPercent = 0;
           if (currentScroll >= startOffset) {
@@ -349,25 +333,13 @@ function App() {
 
       if (!sharedEl || !stageEl || !nextEl) return;
 
-      let nextTop, pCostsTop, pBenefitsTop, pTeamTop, pPlanTop, stageTop, sharedTop;
-
-      if (isDesktop) {
-        nextTop = getStaticOffsetTop(nextEl);
-        pCostsTop = getStaticOffsetTop(pCostsEl);
-        pBenefitsTop = getStaticOffsetTop(pBenefitsEl);
-        pTeamTop = getStaticOffsetTop(pTeamEl);
-        pPlanTop = getStaticOffsetTop(pPlanEl);
-        stageTop = getStaticOffsetTop(stageEl);
-        sharedTop = getStaticOffsetTop(sharedEl);
-      } else {
-        nextTop = getAbsoluteOffsetTop(nextEl);
-        pCostsTop = getAbsoluteOffsetTop(pCostsEl);
-        pBenefitsTop = getAbsoluteOffsetTop(pBenefitsEl);
-        pTeamTop = getAbsoluteOffsetTop(pTeamEl);
-        pPlanTop = getAbsoluteOffsetTop(pPlanEl);
-        stageTop = getAbsoluteOffsetTop(stageEl);
-        sharedTop = getAbsoluteOffsetTop(sharedEl);
-      }
+      const nextTop = getAbsoluteOffsetTop(nextEl);
+      const pCostsTop = getAbsoluteOffsetTop(pCostsEl);
+      const pBenefitsTop = getAbsoluteOffsetTop(pBenefitsEl);
+      const pTeamTop = getAbsoluteOffsetTop(pTeamEl);
+      const pPlanTop = getAbsoluteOffsetTop(pPlanEl);
+      const stageTop = getAbsoluteOffsetTop(stageEl);
+      const sharedTop = getAbsoluteOffsetTop(sharedEl);
 
       if (scrollPos >= nextTop) {
         setActiveSection('next-steps');
@@ -390,9 +362,9 @@ function App() {
       // Animate vertical timeline filling connector line dynamically
       const fillLine = document.querySelector('.timeline-progress-fill-line');
       if (isDesktop && fillLine && pPlanEl && pCostsEl) {
-        const startOffset = getStaticOffsetTop(pPlanEl) - (containerEl.clientHeight / 2);
-        const endOffset = getStaticOffsetTop(pCostsEl) - (containerEl.clientHeight / 2);
-        const currentScroll = containerEl.scrollTop;
+        const startOffset = pPlanTop - (window.innerHeight / 2);
+        const endOffset = pCostsTop - (window.innerHeight / 2);
+        const currentScroll = window.scrollY;
 
         let progressPercent = 0;
         if (currentScroll >= startOffset) {
@@ -403,38 +375,10 @@ function App() {
       }
     };
 
-    const containerEl = document.querySelector('.workspace-content');
     window.addEventListener('scroll', handleScroll);
-    if (containerEl) {
-      containerEl.addEventListener('scroll', handleScroll);
-    }
-
-    const handleGlobalWheel = (e) => {
-      const container = document.querySelector('.workspace-content');
-      if (!container) return;
-
-      // Do not forward scroll if the user is scrolling directly inside the essential resources section
-      if (e.target.closest('.journey-right-sidebar') || e.target.closest('.journey-right-card')) {
-        return;
-      }
-
-      // Do not intercept if user is already scrolling directly inside the scrollable content area
-      if (e.target.closest('.workspace-content')) {
-        return;
-      }
-
-      // Scroll the main workspace content panel
-      container.scrollTop += e.deltaY;
-    };
-
-    window.addEventListener('wheel', handleGlobalWheel, { passive: true });
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      if (containerEl) {
-        containerEl.removeEventListener('scroll', handleScroll);
-      }
-      window.removeEventListener('wheel', handleGlobalWheel);
     };
   }, [activeTab, navigatorScreen]);
 
@@ -442,17 +386,9 @@ function App() {
     if (activeTab === 'NAVIGATOR') {
       if (navigatorScreen === 'JOURNEY') {
         window.scrollTo(0, 0);
-        const container = document.querySelector('.workspace-content');
-        if (container) {
-          container.scrollTop = 0;
-        }
         setActiveSection('journey');
       } else if (navigatorScreen === 'PLAN') {
         window.scrollTo(0, 0);
-        const container = document.querySelector('.workspace-content');
-        if (container) {
-          container.scrollTop = 0;
-        }
         setActiveCarePlanSection('plan-overview');
       }
     }
@@ -473,15 +409,12 @@ function App() {
   const scrollToSection = (sectionId) => {
     const el = document.getElementById(`section-${sectionId}`);
     if (el) {
-      const container = document.querySelector('.workspace-content');
       const isDesktop = window.innerWidth > 768;
-      if (isDesktop && container) {
-        const relativeTop = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
-        // Center the card in the middle of the scroll container viewport
-        const targetHeight = sectionId.startsWith('pillar-') ? 240 : el.clientHeight;
-        const offset = (container.clientHeight - targetHeight) / 2;
-        container.scrollTo({
-          top: relativeTop - Math.max(20, offset),
+      if (isDesktop) {
+        // Scroll the window smoothly, subtracting 90px to account for the sticky header
+        const topOffset = el.getBoundingClientRect().top + window.scrollY - 90;
+        window.scrollTo({
+          top: topOffset,
           behavior: 'smooth'
         });
       } else {
